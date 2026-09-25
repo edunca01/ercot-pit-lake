@@ -1,0 +1,51 @@
+# Needs no secrets and no cloud account: lint, types, tests, gitleaks.
+# Nothing here deploys; a deployment is its own Terraform root with its own credentials.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --all-packages --all-groups --frozen
+      - name: Lint
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check .
+      - name: Typecheck
+        run: uv run mypy
+      - name: Test
+        run: uv run pytest --cov --cov-report=xml --cov-report=term
+      - name: ercot-lake installs on its own
+        run: |
+          uv venv /tmp/lake-only && uv pip install --python /tmp/lake-only ./lake
+          /tmp/lake-only/bin/python -c "import ercot_lake; print(ercot_lake.CONTRACT_VERSION)"
+
+  secrets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

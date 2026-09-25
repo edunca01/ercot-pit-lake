@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+build/
+dist/
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+.envrc
+*.pem
+*.key
+
+# Local lake (LAKE_ROOT=./data)
+/data/
+
+# ERCOT zips are large and not ours to redistribute in bulk; keep trimmed CSV heads only
+samples/**/*.zip
+
+# Terraform: deployment-specific values never enter this repo
+infra/**/.terraform/
+infra/**/*.tfstate*
+infra/**/*.tfvars
+!infra/**/*.tfvars.example
+infra/backend.hcl
+# plan files embed variable values (alert email, Slack IDs) in clear text
+*.tfplan
+tfplan
+crash*.log
+override.tf
+*_override.tf
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
