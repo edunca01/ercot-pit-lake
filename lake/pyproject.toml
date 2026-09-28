@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 # Keep this list short: consumers install it next to their own stacks.
 dependencies = [
-  "duckdb>=1.1",
+  "duckdb>=1.5",  # to_arrow_table()
   "pyarrow>=17.0",
   "pydantic>=2.7",
 ]
