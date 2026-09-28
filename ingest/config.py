@@ -59,6 +59,62 @@ class StateConfig(_Strict):
     dynamodb_table: str
 
 
+TimeStyle = Literal["hour_ending", "hour_interval", "sced_timestamp"]
+
+# Canonical columns a declaration must provide, by how ERCOT expresses time and by table.
+_TIME_COLUMNS: dict[str, tuple[str, ...]] = {
+    "hour_ending": ("delivery_date", "hour_ending"),
+    "hour_interval": ("delivery_date", "delivery_hour", "delivery_interval"),
+    "sced_timestamp": ("sced_timestamp",),
+}
+_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "spp": ("settlement_point", "price_mwh"),
+    "mcpc": ("as_type", "mcpc_mw"),
+    "series": (),  # the value columns are named in `series`
+}
+
+
+class TransformDecl(_Strict):
+    """How to read one ERCOT report, declared instead of coded.
+
+    ``columns`` maps each canonical name to its ``[API field, archive CSV header]``; ``null``
+    where a format lacks the column. The lists are exhaustive: a source column that is not
+    declared, or a declared one that is missing, is schema drift.
+    """
+
+    time: TimeStyle
+    columns: dict[str, tuple[str | None, str | None]]
+    # series tables: canonical value column -> published series name (`<report>:<column>`)
+    series: dict[str, str] | None = None
+    # keep only rows where this canonical Y/N column is Y (e.g. the load report's in-use model)
+    keep_flag: str | None = None
+    # spp tables: keep only settlement points with these prefixes (raw keeps everything)
+    keep_point_prefixes: tuple[str, ...] | None = None
+
+    @model_validator(mode="after")
+    def _consistent(self) -> TransformDecl:
+        missing = [c for c in _TIME_COLUMNS[self.time] if c not in self.columns]
+        if missing:
+            msg = f"time style {self.time} needs columns {missing}"
+            raise ValueError(msg)
+        for canonical, (api, csv) in self.columns.items():
+            if api is None and csv is None:
+                msg = f"column {canonical!r} is in neither format"
+                raise ValueError(msg)
+        for fmt in (0, 1):
+            names = [n for pair in self.columns.values() if (n := pair[fmt]) is not None]
+            dupes = sorted({n for n in names if names.count(n) > 1})
+            if dupes:
+                msg = f"source columns declared twice: {dupes}"
+                raise ValueError(msg)
+        referenced = [*(self.series or {}), *([self.keep_flag] if self.keep_flag else [])]
+        unknown = [c for c in referenced if c not in self.columns]
+        if unknown:
+            msg = f"series/keep_flag name undeclared columns: {unknown}"
+            raise ValueError(msg)
+        return self
+
+
 class Product(_Strict):
     key: str
     name: str
@@ -81,11 +137,29 @@ class Product(_Strict):
     # Collected by this deployment: scheduled, freshness-checked, `live` in the catalog. A
     # disabled product can still be backfilled, and its data stays readable.
     enabled: bool
+    transform: TransformDecl | None = None
 
     @model_validator(mode="after")
     def _enabled_requires_endpoint(self) -> Product:
         if self.enabled and self.endpoint is None:
             msg = f"{self.key}: enabled=true requires an endpoint"
+            raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def _transform_fits_table(self) -> Product:
+        t = self.transform
+        if t is None:
+            return self
+        missing = [c for c in _TABLE_COLUMNS[self.table] if c not in t.columns]
+        if missing:
+            msg = f"{self.key}: a {self.table} transform needs columns {missing}"
+            raise ValueError(msg)
+        if (self.table == "series") != bool(t.series):
+            msg = f"{self.key}: `series` is required for series tables and only for them"
+            raise ValueError(msg)
+        if t.keep_point_prefixes is not None and self.table != "spp":
+            msg = f"{self.key}: keep_point_prefixes applies to spp tables only"
             raise ValueError(msg)
         return self
 
