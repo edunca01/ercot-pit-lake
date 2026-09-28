@@ -1,0 +1,173 @@
+# Products, ERCOT endpoints and pipeline settings: the single source for all of them.
+# Python never hardcodes product IDs, bucket names or regions; it reads this file plus env.
+# The lake layout, schemas and time zone are fixed by ercot_lake.contract, not configured here.
+#
+# `enabled` chooses what a deployment collects: an enabled product gets a schedule and a
+# freshness check. ENABLED_PRODUCTS (comma-separated keys) replaces the selection at deploy time.
+#
+# `stale_after_min` is the age of the newest posting (minutes) past which a gap is forming and
+# someone should look. The freshness check counts products past it into one metric,
+# StaleProducts, which one alarm watches.
+
+ercot:
+  api_base: https://api.ercot.com/api/public-reports
+  archive_base: https://api.ercot.com/api/public-reports/archive
+  # Azure AD B2C resource-owner-password flow used by the ERCOT Public API. The client ID is
+  # ERCOT's published public client, not a secret.
+  auth:
+    token_url: https://ercotb2c.b2clogin.com/ercotb2c.onmicrosoft.com/B2C_1_PUBAPI-ROPC-FLOW/oauth2/v2.0/token
+    client_id: fec253ea-0d06-4272-a5e6-b478baeecd70
+    scope: "openid fec253ea-0d06-4272-a5e6-b478baeecd70 offline_access"
+  page_size: 1000
+  timeout_s: 60
+  max_retries: 8             # backfill and explicit windows
+  live_max_retries: 3        # scheduled runs give up within a minute; the next run is the retry
+  min_interval_s: 2.0        # ERCOT returns 429 readily; pace every request
+
+state:
+  # Watermarks. local writes <local_dir>/<product>.json; the Lambda sets STATE_BACKEND=dynamodb.
+  backend: local
+  local_dir: ./data/state
+  dynamodb_table: ercot-ingest-state
+
+lake:
+  # Overridden by LAKE_ROOT. A local directory offline, s3://<bucket> when deployed.
+  root: ./data
+
+products:
+  np4-190-cd:
+    name: DAM settlement point prices
+    archive_id: NP4-190-CD
+    endpoint: /np4-190-cd/dam_stlmnt_pnt_prices
+    table: spp
+    cadence: daily
+    interval_minutes: 60
+    post_time_ct: "12:30-13:00 (observed)"
+    schedule: "cron(0/5 12-14 * * ? *)"   # poll every 5 min 12:00-14:55 CT; first hit takes it
+    date_params: [deliveryDateFrom, deliveryDateTo]
+    initial_lookback_hours: 72   # first run with no watermark: how far back to list postings
+    stale_after_min: 1560   # 26 h: today's ~12:35 CT posting still missing at ~14:35 CT, as polling ends
+    enabled: true
+
+  np4-188-cd:
+    name: DAM AS clearing prices (MCPC)
+    archive_id: NP4-188-CD
+    endpoint: /np4-188-cd/dam_clear_price_for_cap
+    table: mcpc
+    cadence: daily
+    interval_minutes: 60
+    post_time_ct: "12:30-13:00 (observed)"
+    schedule: "cron(0/5 12-14 * * ? *)"   # poll every 5 min 12:00-14:55 CT; first hit takes it
+    date_params: [deliveryDateFrom, deliveryDateTo]
+    initial_lookback_hours: 72
+    stale_after_min: 1560   # as np4-190-cd
+    enabled: true
+
+  np6-905-cd:
+    name: RT settlement point prices, 15-min
+    archive_id: NP6-905-CD
+    endpoint: /np6-905-cd/spp_node_zone_hub
+    table: spp
+    cadence: 15min
+    interval_minutes: 15
+    post_time_ct: "+2m after interval end; listable in the archive ~3 min later (varies)"
+    schedule: "cron(* * * * ? *)"      # poll every minute; a run with nothing new is one listing call
+    date_params: [deliveryDateFrom, deliveryDateTo]
+    initial_lookback_hours: 6
+    stale_after_min: 60   # normal peak ~19 min just before the next posting
+    enabled: true
+
+  np6-331-cd:
+    name: RT AS clearing prices, 15-min (RTC+B)
+    archive_id: NP6-331-CD
+    # On the Public API since RTC+B went live, 2025-12-05.
+    endpoint: /np6-331-cd/rt_clear_price_cap
+    # ERCOT's yearly workbook of the same prices: fills gaps in the regular postings (backfill
+    # only, never polled).
+    fallback_archive_id: NP6-796-ER
+    table: mcpc
+    cadence: 15min
+    interval_minutes: 15
+    post_time_ct: "+2m after interval end; listable in the archive ~3 min later (varies)"
+    schedule: "cron(* * * * ? *)"
+    date_params: [deliveryDateFrom, deliveryDateTo]
+    initial_lookback_hours: 6
+    stale_after_min: 60   # as np6-905-cd
+    enabled: true
+
+  # System series: load, wind and solar reports and the SCED system lambda, melted into the
+  # series table. Collected from the dates below; earlier intervals are not gaps.
+  np3-565-cd:
+    name: Seven-day load forecast by weather zone (in-use model)
+    archive_id: NP3-565-CD
+    endpoint: /np3-565-cd/lf_by_model_weather_zone
+    table: series
+    cadence: hourly
+    interval_minutes: 60
+    post_time_ct: "hourly at ~:30"
+    schedule: "cron(*/5 * * * ? *)"     # poll every 5 min; one listing call when nothing is new
+    date_params: [deliveryDateFrom, deliveryDateTo]
+    initial_lookback_hours: 6
+    stale_after_min: 240   # hourly; normal peak ~65 min
+    collected_from: "2026-09-17T11:00:00Z"
+    enabled: true
+
+  np4-732-cd:
+    name: Wind power production, hourly actual and forecast
+    archive_id: NP4-732-CD
+    endpoint: /np4-732-cd/wpp_hrly_avrg_actl_fcast
+    table: series
+    cadence: hourly
+    interval_minutes: 60
+    post_time_ct: "hourly at ~:55"
+    schedule: "cron(*/5 * * * ? *)"
+    date_params: [deliveryDateFrom, deliveryDateTo]
+    initial_lookback_hours: 6
+    stale_after_min: 240   # as np3-565-cd
+    collected_from: "2026-09-17T11:00:00Z"
+    enabled: true
+
+  np4-737-cd:
+    name: Solar power production, hourly actual and forecast
+    archive_id: NP4-737-CD
+    endpoint: /np4-737-cd/spp_hrly_avrg_actl_fcast
+    table: series
+    cadence: hourly
+    interval_minutes: 60
+    post_time_ct: "hourly at ~:55"
+    schedule: "cron(*/5 * * * ? *)"
+    date_params: [deliveryDateFrom, deliveryDateTo]
+    initial_lookback_hours: 6
+    stale_after_min: 240   # as np3-565-cd
+    collected_from: "2026-09-17T11:00:00Z"
+    enabled: true
+
+  np6-788-cd:
+    name: SCED LMPs by resource node, load zone and hub, 5-min
+    archive_id: NP6-788-CD
+    endpoint: /np6-788-cd/lmp_node_zone_hub
+    table: spp                # 5-minute grain, settlement_point_type NULL
+    cadence: 5min
+    interval_minutes: 5
+    post_time_ct: "~20 s after each SCED run; listable ~1 min later"
+    schedule: "cron(* * * * ? *)"
+    date_params: [SCEDTimestampFrom, SCEDTimestampTo]
+    initial_lookback_hours: 2
+    stale_after_min: 45   # SCED runs every 5 min; normal 1-5 min, observed peak ~10
+    collected_from: "2026-09-17T15:05:00Z"
+    enabled: true
+
+  np6-322-cd:
+    name: SCED system lambda, 5-min
+    archive_id: NP6-322-CD
+    endpoint: /np6-322-cd/sced_system_lambda
+    table: series
+    cadence: 5min
+    interval_minutes: 5
+    post_time_ct: "~20 s after each SCED run; listable ~1 min later"
+    schedule: "cron(* * * * ? *)"
+    date_params: [SCEDTimestampFrom, SCEDTimestampTo]
+    initial_lookback_hours: 2
+    stale_after_min: 45   # as np6-788-cd
+    collected_from: "2026-09-17T15:05:00Z"
+    enabled: true
