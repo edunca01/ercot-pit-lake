@@ -231,7 +231,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "duckdb", specifier = ">=1.1" },
+    { name = "duckdb", specifier = ">=1.5" },
     { name = "pyarrow", specifier = ">=17.0" },
     { name = "pydantic", specifier = ">=2.7" },
 ]
