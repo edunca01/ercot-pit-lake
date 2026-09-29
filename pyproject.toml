@@ -16,6 +16,10 @@ dependencies = [
   "openpyxl>=3.1",
 ]
 
+[project.scripts]
+ingest = "ingest.cli:main_ingest"
+backfill = "ingest.cli:main_backfill"
+
 [tool.uv.workspace]
 members = ["lake"]
 

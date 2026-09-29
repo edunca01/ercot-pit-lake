@@ -1,0 +1,10 @@
+# Only what the image copies; everything else stays out of the build context.
+*
+!pyproject.toml
+!uv.lock
+!config.yaml
+!ingest/
+!lake/pyproject.toml
+!lake/README.md
+!lake/src/
+**/__pycache__
