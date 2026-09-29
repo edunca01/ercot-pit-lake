@@ -34,20 +34,29 @@ def local_to_utc(local: datetime, *, repeated_hour: bool) -> datetime:
     return utc
 
 
-def parse_post_datetime(text: str) -> datetime:
-    """ERCOT listing ``postDatetime`` (``2026-09-03T12:32:53.000``, CT) -> aware UTC.
+def parse_post_local(text: str) -> datetime:
+    """ERCOT listing ``postDatetime`` (``2026-09-03T12:32:53.000``) -> naive CT wall-clock time.
 
-    The listing carries no DST flag. A posting inside the repeated fall-back hour is read as
-    the first occurrence; callers that order postings must not rely on this alone that hour.
+    The listing carries no DST flag, so inside the repeated fall-back hour the same text means
+    two instants; ``ingest.ercot_api`` tells them apart by listing order.
     """
     for fmt in _POST_FORMATS:
         try:
-            local = datetime.strptime(text, fmt)  # naive CT by definition
+            return datetime.strptime(text, fmt)  # naive CT by definition
         except ValueError:
             continue
-        return local_to_utc(local, repeated_hour=False)
     msg = f"unrecognised postDatetime {text!r}"
     raise ValueError(msg)
+
+
+def parse_post_datetime(text: str) -> datetime:
+    """``postDatetime`` -> aware UTC, reading the repeated fall-back hour as its first pass."""
+    return local_to_utc(parse_post_local(text), repeated_hour=False)
+
+
+def is_repeated_local(local: datetime) -> bool:
+    """True when a CT wall-clock time happens twice (the fall-back hour)."""
+    return ct_to_utc(local) != ct_to_utc(local, repeated_hour=True)
 
 
 def parse_delivery_date(text: str) -> date:
