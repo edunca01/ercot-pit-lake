@@ -36,9 +36,8 @@ def test_product_keys_are_ercot_ids(cfg: Settings) -> None:
         assert p.archive_id == key.upper()
 
 
-def test_enabled_products_have_endpoints(cfg: Settings) -> None:
-    for p in cfg.enabled_products:
-        assert p.endpoint is not None
+def test_endpoints_belong_to_their_product(cfg: Settings) -> None:
+    for p in cfg.products.values():
         assert p.endpoint.startswith(f"/{p.key}/")
 
 
@@ -55,13 +54,8 @@ def test_schedules_look_like_eventbridge_cron(cfg: Settings) -> None:
 
 def test_rt_as_product_has_its_workbook_archive(cfg: Settings) -> None:
     p = cfg.product("np6-331-cd")
-    assert p.enabled is True
     assert p.endpoint == "/np6-331-cd/rt_clear_price_cap"
     assert p.fallback_archive_id == "NP6-796-ER"
-
-
-def test_every_built_in_product_is_enabled_by_default(cfg: Settings) -> None:
-    assert {p.key for p in cfg.enabled_products} == BUILT_IN
 
 
 def test_collected_from_is_utc_aware(cfg: Settings) -> None:
@@ -72,7 +66,7 @@ def test_collected_from_is_utc_aware(cfg: Settings) -> None:
 
 def test_every_product_has_a_stale_threshold_past_its_cadence(cfg: Settings) -> None:
     every = {"5min": 5, "15min": 15, "hourly": 60, "daily": 1440}
-    for p in cfg.enabled_products:
+    for p in cfg.products.values():
         assert p.stale_after_min > every[p.cadence], p.key
     # a scheduled run has to give up before the next one starts
     assert cfg.ercot.live_max_retries < cfg.ercot.max_retries
@@ -91,29 +85,6 @@ def test_unknown_config_keys_are_rejected(tmp_path: Path) -> None:
         load_settings(path)
 
 
-# -- product selection -------------------------------------------------------------------
-
-
-def test_enabled_products_env_selects_exactly(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ENABLED_PRODUCTS", " np6-905-cd,np4-190-cd ")
-    s = load_settings()
-    assert {p.key for p in s.enabled_products} == {"np6-905-cd", "np4-190-cd"}
-    # disabled products stay defined: they can be backfilled and their data stays readable
-    assert set(s.products) == BUILT_IN
-    assert s.product("np6-331-cd").enabled is False
-
-
-def test_enabled_products_env_can_disable_everything(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ENABLED_PRODUCTS", "")
-    assert load_settings().enabled_products == []
-
-
-def test_enabled_products_env_rejects_typos(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ENABLED_PRODUCTS", "np6-905-cd,np6-905-dc")
-    with pytest.raises(ValueError, match="unknown products: np6-905-dc"):
-        load_settings()
-
-
 def _product(**changes: object) -> Product:
     fields: dict[str, object] = {
         "key": "np6-331-cd",
@@ -128,15 +99,19 @@ def _product(**changes: object) -> Product:
         "date_params": ("a", "b"),
         "initial_lookback_hours": 6,
         "stale_after_min": 60,
-        "enabled": True,
     }
     return Product.model_validate({**fields, **changes})
 
 
-def test_enabled_without_endpoint_is_rejected() -> None:
-    with pytest.raises(ValidationError, match="requires an endpoint"):
+def test_every_product_needs_an_endpoint() -> None:
+    with pytest.raises(ValidationError, match="endpoint"):
         _product(endpoint=None)
-    assert _product(endpoint=None, enabled=False).endpoint is None  # backfill-only is fine
+
+
+def test_the_retired_enabled_flag_is_rejected() -> None:
+    # Every configured product is collected; a leftover selection flag must not pass silently.
+    with pytest.raises(ValidationError, match="enabled"):
+        _product(enabled=False)
 
 
 def test_table_must_be_a_contract_table() -> None:
