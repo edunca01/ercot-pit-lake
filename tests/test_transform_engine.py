@@ -145,12 +145,6 @@ def test_payload_type_must_match_the_source() -> None:
         transform(spec, "archive", {}, posted_at=POSTED, ingested_at=INGESTED)
 
 
-def test_a_product_without_a_declaration() -> None:
-    bare = RT_SPP.model_copy(update={"transform": None})
-    with pytest.raises(LookupError, match="no transform declaration"):
-        TransformSpec.for_product(bare)
-
-
 # -- table families ----------------------------------------------------------------------
 
 

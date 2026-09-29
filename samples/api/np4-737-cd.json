@@ -1,0 +1,90 @@
+{
+ "_sample": {
+  "query": {
+   "parameterCount": 2,
+   "parameters": {
+    "deliveryDateFrom": "2026-09-14",
+    "deliveryDateTo": "2026-09-15"
+   },
+   "sortedBy": "postedDatetime: DESC,deliveryDate: DESC,hourEnding: ASC"
+  },
+  "rows_fetched": 50,
+  "rows_kept": 4,
+  "rule": "first 2 intervals; price tables: all HB_/LZ_ rows + 5 resource nodes per interval; others: all rows of those intervals"
+ },
+ "data": [
+  [
+   "2026-09-16T14:55:11",
+   "2026-09-15",
+   1,
+   0.66,
+   0.0,
+   0.0,
+   0.0,
+   1.1,
+   false
+  ],
+  [
+   "2026-09-16T14:55:11",
+   "2026-09-15",
+   2,
+   0.75,
+   0.0,
+   0.0,
+   0.0,
+   1.15,
+   false
+  ],
+  [
+   "2026-09-16T13:55:14",
+   "2026-09-15",
+   1,
+   0.66,
+   0.0,
+   0.0,
+   0.0,
+   1.1,
+   false
+  ],
+  [
+   "2026-09-16T13:55:14",
+   "2026-09-15",
+   2,
+   0.75,
+   0.0,
+   0.0,
+   0.0,
+   1.15,
+   false
+  ]
+ ],
+ "fields": [
+  {
+   "name": "postedDatetime"
+  },
+  {
+   "name": "deliveryDate"
+  },
+  {
+   "name": "hourEnding"
+  },
+  {
+   "name": "genSystemWide"
+  },
+  {
+   "name": "COPHSLSystemWide"
+  },
+  {
+   "name": "STPPFSystemWide"
+  },
+  {
+   "name": "PVGRPPSystemWide"
+  },
+  {
+   "name": "HSLSystemWide"
+  },
+  {
+   "name": "DSTFlag"
+  }
+ ]
+}

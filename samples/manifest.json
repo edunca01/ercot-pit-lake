@@ -1,0 +1,126 @@
+{
+  "np3-565-cd": {
+    "archive": {
+      "archive_id": "NP3-565-CD",
+      "doc_id": 1280425529,
+      "listed_at": "2026-09-29T15:30:00+00:00",
+      "posted_at": "2026-09-29T15:30:00+00:00"
+    }
+  },
+  "np4-188-cd": {
+    "archive": {
+      "archive_id": "NP4-188-CD",
+      "doc_id": 1280076649,
+      "listed_at": "2026-09-28T18:51:11+00:00",
+      "posted_at": "2026-09-28T18:51:11+00:00"
+    }
+  },
+  "np4-190-cd": {
+    "api": {
+      "query": {
+        "parameterCount": 2,
+        "parameters": {
+          "deliveryDateFrom": "2026-09-28",
+          "deliveryDateTo": "2026-09-28"
+        },
+        "sortedBy": "deliveryDate: DESC,hourEnding: ASC,settlementPoint: ASC"
+      },
+      "rows_kept": 40
+    },
+    "archive": {
+      "archive_id": "NP4-190-CD",
+      "doc_id": 1280076656,
+      "listed_at": "2026-09-28T18:51:11+00:00",
+      "posted_at": "2026-09-28T18:51:11+00:00"
+    }
+  },
+  "np4-732-cd": {
+    "archive": {
+      "archive_id": "NP4-732-CD",
+      "doc_id": 1280432249,
+      "listed_at": "2026-09-29T15:55:12+00:00",
+      "posted_at": "2026-09-29T15:55:12+00:00"
+    }
+  },
+  "np4-737-cd": {
+    "archive": {
+      "archive_id": "NP4-737-CD",
+      "doc_id": 1280432266,
+      "listed_at": "2026-09-29T15:55:13+00:00",
+      "posted_at": "2026-09-29T15:55:13+00:00"
+    }
+  },
+  "np6-322-cd": {
+    "archive": {
+      "archive_id": "NP6-322-CD",
+      "doc_id": 1280439964,
+      "listed_at": "2026-09-29T16:25:20+00:00",
+      "posted_at": "2026-09-29T16:25:20+00:00"
+    }
+  },
+  "np6-331-cd": {
+    "archive": {
+      "archive_id": "NP6-331-CD",
+      "doc_id": 1280437715,
+      "listed_at": "2026-09-29T16:17:00+00:00",
+      "posted_at": "2026-09-29T16:17:00+00:00"
+    }
+  },
+  "np6-345-cd": {
+    "api": {
+      "query": {
+        "parameterCount": 2,
+        "parameters": {
+          "operatingDayFrom": "2026-09-28",
+          "operatingDayTo": "2026-09-28"
+        },
+        "sortedBy": "operatingDay: DESC,hourEnding: ASC"
+      },
+      "rows_kept": 2
+    },
+    "archive": {
+      "archive_id": "NP6-345-CD",
+      "doc_id": 1280338688,
+      "listed_at": "2026-09-29T10:50:00+00:00",
+      "posted_at": "2026-09-29T10:50:00+00:00"
+    }
+  },
+  "np6-788-cd": {
+    "api": {
+      "query": {
+        "parameterCount": 2,
+        "parameters": {
+          "SCEDTimestampFrom": "2026-09-28T12:00:00",
+          "SCEDTimestampTo": "2026-09-28T12:15:00"
+        },
+        "sortedBy": "SCEDTimestamp: DESC"
+      },
+      "rows_kept": 40
+    },
+    "archive": {
+      "archive_id": "NP6-788-CD",
+      "doc_id": 1280439736,
+      "listed_at": "2026-09-29T16:25:20+00:00",
+      "posted_at": "2026-09-29T16:25:20+00:00"
+    }
+  },
+  "np6-905-cd": {
+    "api": {
+      "query": {
+        "parameterCount": 2,
+        "parameters": {
+          "deliveryDateFrom": "2026-09-28",
+          "deliveryDateTo": "2026-09-28"
+        },
+        "sortedBy": "deliveryDate: DESC,deliveryHour: ASC,deliveryInterval: ASC"
+      },
+      "rows_kept": 56
+    },
+    "archive": {
+      "archive_id": "NP6-905-CD",
+      "doc_id": 1280437734,
+      "listed_at": "2026-09-29T16:17:01+00:00",
+      "posted_at": "2026-09-29T16:17:01+00:00"
+    }
+  }
+}

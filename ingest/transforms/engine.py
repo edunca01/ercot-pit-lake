@@ -50,9 +50,6 @@ class TransformSpec:
     @classmethod
     def for_product(cls, product: Product) -> TransformSpec:
         decl = product.transform
-        if decl is None:
-            msg = f"{product.key} has no transform declaration"
-            raise LookupError(msg)
         return cls(
             product=product.key,
             table=product.table,

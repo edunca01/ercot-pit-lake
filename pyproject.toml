@@ -71,6 +71,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "lake/tests"]
+pythonpath = ["."]  # scripts/ is operator tooling, not an installed package
 addopts = "-q --strict-markers -m 'not live'"
 markers = ["live: hits the real ERCOT API; needs credentials (deselected by default)"]
 

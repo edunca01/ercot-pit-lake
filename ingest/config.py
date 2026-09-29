@@ -62,7 +62,7 @@ class StateConfig(_Strict):
 TimeStyle = Literal["hour_ending", "hour_interval", "sced_timestamp"]
 
 # Canonical columns a declaration must provide, by how ERCOT expresses time and by table.
-_TIME_COLUMNS: dict[str, tuple[str, ...]] = {
+TIME_COLUMNS: dict[str, tuple[str, ...]] = {
     "hour_ending": ("delivery_date", "hour_ending"),
     "hour_interval": ("delivery_date", "delivery_hour", "delivery_interval"),
     "sced_timestamp": ("sced_timestamp",),
@@ -93,7 +93,7 @@ class TransformDecl(_Strict):
 
     @model_validator(mode="after")
     def _consistent(self) -> TransformDecl:
-        missing = [c for c in _TIME_COLUMNS[self.time] if c not in self.columns]
+        missing = [c for c in TIME_COLUMNS[self.time] if c not in self.columns]
         if missing:
             msg = f"time style {self.time} needs columns {missing}"
             raise ValueError(msg)
@@ -134,13 +134,11 @@ class Product(_Strict):
     # First interval (posting hour for hourly reports) the lake is expected to hold; earlier
     # ones are not gaps. None: history is backfilled, every interval counts.
     collected_from: AwareDatetime | None = None
-    transform: TransformDecl | None = None
+    transform: TransformDecl
 
     @model_validator(mode="after")
     def _transform_fits_table(self) -> Product:
         t = self.transform
-        if t is None:
-            return self
         missing = [c for c in _TABLE_COLUMNS[self.table] if c not in t.columns]
         if missing:
             msg = f"{self.key}: a {self.table} transform needs columns {missing}"

@@ -1,0 +1,83 @@
+{
+ "_sample": {
+  "query": {
+   "parameterCount": 2,
+   "parameters": {
+    "operatingDayFrom": "2026-09-28",
+    "operatingDayTo": "2026-09-28"
+   },
+   "sortedBy": "operatingDay: DESC,hourEnding: ASC"
+  },
+  "rows_fetched": 24,
+  "rows_kept": 2,
+  "rule": "first 2 intervals; price tables: all HB_/LZ_ rows + 5 resource nodes per interval; others: all rows of those intervals"
+ },
+ "data": [
+  [
+   "2026-09-28",
+   "01:00",
+   15634.67,
+   1931.13,
+   7675.68,
+   1686.86,
+   16704.14,
+   5028.49,
+   9970.7,
+   1840.18,
+   60471.86,
+   false
+  ],
+  [
+   "2026-09-28",
+   "02:00",
+   14993.85,
+   1836.59,
+   7495.04,
+   1600.82,
+   15796.55,
+   4667.26,
+   9410.17,
+   1958.88,
+   57759.15,
+   false
+  ]
+ ],
+ "fields": [
+  {
+   "name": "operatingDay"
+  },
+  {
+   "name": "hourEnding"
+  },
+  {
+   "name": "coast"
+  },
+  {
+   "name": "east"
+  },
+  {
+   "name": "farWest"
+  },
+  {
+   "name": "north"
+  },
+  {
+   "name": "northC"
+  },
+  {
+   "name": "southern"
+  },
+  {
+   "name": "southC"
+  },
+  {
+   "name": "west"
+  },
+  {
+   "name": "total"
+  },
+  {
+   "name": "DSTFlag"
+  }
+ ]
+}
