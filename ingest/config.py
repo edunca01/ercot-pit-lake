@@ -1,8 +1,8 @@
 """Typed access to ``config.yaml`` and environment.
 
 Nothing else in the package reads YAML or ``os.environ`` directly; this module is the single
-place where product IDs, endpoints, the lake root, the product selection and credentials are
-resolved. The lake layout itself is fixed by ``ercot_lake.contract`` and is not configurable.
+place where product IDs, endpoints, the lake root and credentials are resolved. The lake
+layout itself is fixed by ``ercot_lake.contract`` and is not configurable.
 """
 
 from __future__ import annotations
@@ -119,7 +119,7 @@ class Product(_Strict):
     key: str
     name: str
     archive_id: str
-    endpoint: str | None
+    endpoint: str
     # A second ERCOT archive with the same prices, read by backfill only (never polled).
     fallback_archive_id: str | None = None
     table: Table
@@ -134,17 +134,7 @@ class Product(_Strict):
     # First interval (posting hour for hourly reports) the lake is expected to hold; earlier
     # ones are not gaps. None: history is backfilled, every interval counts.
     collected_from: AwareDatetime | None = None
-    # Collected by this deployment: scheduled, freshness-checked, `live` in the catalog. A
-    # disabled product can still be backfilled, and its data stays readable.
-    enabled: bool
     transform: TransformDecl | None = None
-
-    @model_validator(mode="after")
-    def _enabled_requires_endpoint(self) -> Product:
-        if self.enabled and self.endpoint is None:
-            msg = f"{self.key}: enabled=true requires an endpoint"
-            raise ValueError(msg)
-        return self
 
     @model_validator(mode="after")
     def _transform_fits_table(self) -> Product:
@@ -178,10 +168,6 @@ class Settings(_Strict):
             msg = f"unknown product {key!r}; known: {known}"
             raise KeyError(msg) from None
 
-    @property
-    def enabled_products(self) -> list[Product]:
-        return [p for p in self.products.values() if p.enabled]
-
 
 class Credentials(_Strict):
     username: str
@@ -198,17 +184,13 @@ def load_settings(path: Path | None = None) -> Settings:
     - ``CONFIG_PATH``: another config file
     - ``LAKE_ROOT``: ``lake.root``
     - ``STATE_BACKEND``, ``STATE_DIR``, ``STATE_TABLE``: the ``state`` fields
-    - ``ENABLED_PRODUCTS``: comma-separated product keys; exactly these are enabled
     """
     load_dotenv(REPO_ROOT / ".env")
     cfg_path = path or Path(os.environ.get("CONFIG_PATH", DEFAULT_CONFIG_PATH))
     with cfg_path.open() as fh:
         raw = yaml.safe_load(fh)
 
-    products_raw: dict[str, dict[str, object]] = raw.pop("products")
-    if (selection := os.environ.get("ENABLED_PRODUCTS")) is not None:
-        products_raw = _select(products_raw, selection)
-    products = {k: Product(key=k, **v) for k, v in products_raw.items()}  # type: ignore[arg-type]
+    products = {k: Product(key=k, **v) for k, v in raw.pop("products").items()}
     lake_raw = dict(raw.pop("lake"))
     if lake_root := os.environ.get("LAKE_ROOT"):
         lake_raw["root"] = lake_root
@@ -225,16 +207,6 @@ def load_settings(path: Path | None = None) -> Settings:
         state=StateConfig(**state_raw),
         **raw,
     )
-
-
-def _select(products: dict[str, dict[str, object]], selection: str) -> dict[str, dict[str, object]]:
-    """Enable exactly the listed products. A typo must not silently disable collection."""
-    wanted = {k.strip() for k in selection.split(",") if k.strip()}
-    unknown = sorted(wanted - products.keys())
-    if unknown:
-        msg = f"ENABLED_PRODUCTS names unknown products: {', '.join(unknown)}"
-        raise ValueError(msg)
-    return {k: {**v, "enabled": k in wanted} for k, v in products.items()}
 
 
 _CRED_ENV = ("ERCOT_USERNAME", "ERCOT_PASSWORD", "ERCOT_SUBSCRIPTION_KEY")

@@ -2,8 +2,8 @@
 # Python never hardcodes product IDs, bucket names or regions; it reads this file plus env.
 # The lake layout, schemas and time zone are fixed by ercot_lake.contract, not configured here.
 #
-# `enabled` chooses what a deployment collects: an enabled product gets a schedule and a
-# freshness check. ENABLED_PRODUCTS (comma-separated keys) replaces the selection at deploy time.
+# Every product listed here is collected: it gets a schedule and a freshness check. To stop
+# collecting one, remove its entry; the data already in the lake stays readable.
 #
 # `stale_after_min` is the age of the newest posting (minutes) past which a gap is forming and
 # someone should look. The freshness check counts products past it into one metric,
@@ -47,7 +47,6 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 72   # first run with no watermark: how far back to list postings
     stale_after_min: 1560   # 26 h: today's ~12:35 CT posting still missing at ~14:35 CT, as polling ends
-    enabled: true
 
   np4-188-cd:
     name: DAM AS clearing prices (MCPC)
@@ -61,7 +60,6 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 72
     stale_after_min: 1560   # as np4-190-cd
-    enabled: true
 
   np6-905-cd:
     name: RT settlement point prices, 15-min
@@ -75,7 +73,6 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 6
     stale_after_min: 60   # normal peak ~19 min just before the next posting
-    enabled: true
 
   np6-331-cd:
     name: RT AS clearing prices, 15-min (RTC+B)
@@ -93,7 +90,6 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 6
     stale_after_min: 60   # as np6-905-cd
-    enabled: true
 
   # System series: load, wind and solar reports and the SCED system lambda, melted into the
   # series table. Collected from the dates below; earlier intervals are not gaps.
@@ -110,7 +106,6 @@ products:
     initial_lookback_hours: 6
     stale_after_min: 240   # hourly; normal peak ~65 min
     collected_from: "2026-09-17T11:00:00Z"
-    enabled: true
 
   np4-732-cd:
     name: Wind power production, hourly actual and forecast
@@ -125,7 +120,6 @@ products:
     initial_lookback_hours: 6
     stale_after_min: 240   # as np3-565-cd
     collected_from: "2026-09-17T11:00:00Z"
-    enabled: true
 
   np4-737-cd:
     name: Solar power production, hourly actual and forecast
@@ -140,7 +134,6 @@ products:
     initial_lookback_hours: 6
     stale_after_min: 240   # as np3-565-cd
     collected_from: "2026-09-17T11:00:00Z"
-    enabled: true
 
   np6-788-cd:
     name: SCED LMPs by resource node, load zone and hub, 5-min
@@ -155,7 +148,6 @@ products:
     initial_lookback_hours: 2
     stale_after_min: 45   # SCED runs every 5 min; normal 1-5 min, observed peak ~10
     collected_from: "2026-09-17T15:05:00Z"
-    enabled: true
 
   np6-322-cd:
     name: SCED system lambda, 5-min
@@ -170,4 +162,3 @@ products:
     initial_lookback_hours: 2
     stale_after_min: 45   # as np6-788-cd
     collected_from: "2026-09-17T15:05:00Z"
-    enabled: true

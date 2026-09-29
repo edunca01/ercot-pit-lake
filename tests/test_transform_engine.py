@@ -31,7 +31,6 @@ def product(table: str, minutes: int, decl: dict[str, Any], key: str = "np0-001-
             "date_params": ["a", "b"],
             "initial_lookback_hours": 1,
             "stale_after_min": 60,
-            "enabled": True,
             "transform": decl,
         }
     )

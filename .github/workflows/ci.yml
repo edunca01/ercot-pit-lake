@@ -27,7 +27,7 @@ jobs:
       - name: Config loads
         run: >-
           uv run python -c "from ingest.config import load_settings;
-          s = load_settings(); print(len(s.enabled_products), 'of', len(s.products), 'products enabled')"
+          print(len(load_settings().products), 'products')"
       - name: Lint
         run: |
           uv run ruff check --output-format=github .
