@@ -1,0 +1,92 @@
+{
+  "np3-565-cd": {
+    "api": {
+      "rows": 18,
+      "sha256": "f53c69150126a3b2cb54ab310e5356f35c76a47138985da2c95ba09383e299e6"
+    },
+    "archive": {
+      "rows": 18,
+      "sha256": "fff392f9b5450dd3b6e94f17dedf15e220994da0f8ae0644a4a6c2094474c3c1"
+    }
+  },
+  "np4-188-cd": {
+    "api": {
+      "rows": 10,
+      "sha256": "d210f2a79b3916ab49694b8ad52d39c973bbdbea791e7bb875fa7af54e28d057"
+    },
+    "archive": {
+      "rows": 10,
+      "sha256": "f452da335182aec26daa1449cddad165c76c2e37cca5f1adffd0975b6cb61558"
+    }
+  },
+  "np4-190-cd": {
+    "api": {
+      "rows": 40,
+      "sha256": "5669662bac7f27468c3ef78ba0f6db5efc8adccb45ef59ab449c2c53dbd7a059"
+    },
+    "archive": {
+      "rows": 40,
+      "sha256": "e9a6a1834166e6c81a7c919bc3ae51a4cc4dc79c74492da8724bed5294fba90a"
+    }
+  },
+  "np4-732-cd": {
+    "api": {
+      "rows": 68,
+      "sha256": "9cbe6747b0ced9089bbbc00fc2adade9450f40402d2cb4e9d5ef100833d9441a"
+    },
+    "archive": {
+      "rows": 34,
+      "sha256": "e30e090227de2fb9877fb2febb13761ffa8d75e9f25b5932b9757e50e7d88a72"
+    }
+  },
+  "np4-737-cd": {
+    "api": {
+      "rows": 20,
+      "sha256": "8edf07f8555c411b8b2e28e82c599842ce60638504c59c223f1deb028978e7a8"
+    },
+    "archive": {
+      "rows": 10,
+      "sha256": "1194851fc0a01c9d18eb16e8fc94b2173d03fce78edc2d1c9115e3b5a4f83f59"
+    }
+  },
+  "np6-322-cd": {
+    "api": {
+      "rows": 4,
+      "sha256": "65e6636714cb9bbc747664a9e68115db9a137ef91fbd786f92e2f7be2f0f41df"
+    },
+    "archive": {
+      "rows": 2,
+      "sha256": "aaae054d00dca1c8a42cbd0ff666eb683f78401d61cc90be29c4119def8cbc0e"
+    }
+  },
+  "np6-331-cd": {
+    "api": {
+      "rows": 10,
+      "sha256": "ee70b3e049cea400412fc2ae56a46b7c7213358fd01c136951892df6900548a3"
+    },
+    "archive": {
+      "rows": 5,
+      "sha256": "d2c3522df10c08fd99ba25654370210643e6b69e2552777ef8c711cc55d1eb6d"
+    }
+  },
+  "np6-788-cd": {
+    "api": {
+      "rows": 30,
+      "sha256": "2645427eeca6f834440c639c8acc6ba7efc2a195ab2ddd7ae4039fd3a1244dba"
+    },
+    "archive": {
+      "rows": 15,
+      "sha256": "e5d31c65d2b3c4daf7e3c78fa618d995794fd7cf272a4801c4777bf1535f98f6"
+    }
+  },
+  "np6-905-cd": {
+    "api": {
+      "rows": 56,
+      "sha256": "4a0a0ba4a9f6d7841bf5ab94e8a4ba86a871975fce06c0249f1f7ee09197b671"
+    },
+    "archive": {
+      "rows": 28,
+      "sha256": "cc51d3cbe3d9f15182b1b924653ade56541a4f8fe5c50782db9c48cdea0cc0c0"
+    }
+  }
+}

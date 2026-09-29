@@ -1,0 +1,174 @@
+{
+ "_sample": {
+  "query": {
+   "parameterCount": 2,
+   "parameters": {
+    "deliveryDateFrom": "2026-09-14",
+    "deliveryDateTo": "2026-09-15"
+   },
+   "sortedBy": "postedDatetime: DESC,deliveryDate: DESC,hourEnding: ASC"
+  },
+  "rows_fetched": 50,
+  "rows_kept": 4,
+  "rule": "first 2 intervals; price tables: all HB_/LZ_ rows + 5 resource nodes per interval; others: all rows of those intervals"
+ },
+ "data": [
+  [
+   "2026-09-16T14:55:13",
+   "2026-09-15",
+   1,
+   25591.65,
+   25971.6,
+   27084.4,
+   25143.5,
+   5388.0,
+   5654.8,
+   5554.6,
+   4943.6,
+   17548.47,
+   17463.3,
+   18784.6,
+   17621.9,
+   2655.18,
+   2853.5,
+   2745.2,
+   2578.0,
+   26276.64,
+   false
+  ],
+  [
+   "2026-09-16T14:55:13",
+   "2026-09-15",
+   2,
+   25129.88,
+   26389.1,
+   26534.0,
+   24737.2,
+   5249.82,
+   5297.1,
+   5199.0,
+   4599.8,
+   17304.56,
+   18238.4,
+   18619.8,
+   17573.4,
+   2575.5,
+   2853.6,
+   2715.2,
+   2564.0,
+   25816.58,
+   false
+  ],
+  [
+   "2026-09-16T13:55:13",
+   "2026-09-15",
+   1,
+   25591.65,
+   25971.6,
+   27084.4,
+   25143.5,
+   5388.0,
+   5654.8,
+   5554.6,
+   4943.6,
+   17548.47,
+   17463.3,
+   18784.6,
+   17621.9,
+   2655.18,
+   2853.5,
+   2745.2,
+   2578.0,
+   26276.64,
+   false
+  ],
+  [
+   "2026-09-16T13:55:13",
+   "2026-09-15",
+   2,
+   25129.88,
+   26389.1,
+   26534.0,
+   24737.2,
+   5249.82,
+   5297.1,
+   5199.0,
+   4599.8,
+   17304.56,
+   18238.4,
+   18619.8,
+   17573.4,
+   2575.5,
+   2853.6,
+   2715.2,
+   2564.0,
+   25816.58,
+   false
+  ]
+ ],
+ "fields": [
+  {
+   "name": "postedDatetime"
+  },
+  {
+   "name": "deliveryDate"
+  },
+  {
+   "name": "hourEnding"
+  },
+  {
+   "name": "genSystemWide"
+  },
+  {
+   "name": "COPHSLSystemWide"
+  },
+  {
+   "name": "STWPFSystemWide"
+  },
+  {
+   "name": "WGRPPSystemWide"
+  },
+  {
+   "name": "genLoadZoneSouthHouston"
+  },
+  {
+   "name": "COPHSLLoadZoneSouthHouston"
+  },
+  {
+   "name": "STWPFLoadZoneSouthHouston"
+  },
+  {
+   "name": "WGRPPLoadZoneSouthHouston"
+  },
+  {
+   "name": "genLoadZoneWest"
+  },
+  {
+   "name": "COPHSLLoadZoneWest"
+  },
+  {
+   "name": "STWPFLoadZoneWest"
+  },
+  {
+   "name": "WGRPPLoadZoneWest"
+  },
+  {
+   "name": "genLoadZoneNorth"
+  },
+  {
+   "name": "COPHSLLoadZoneNorth"
+  },
+  {
+   "name": "STWPFLoadZoneNorth"
+  },
+  {
+   "name": "WGRPPLoadZoneNorth"
+  },
+  {
+   "name": "HSLSystemWide"
+  },
+  {
+   "name": "DSTFlag"
+  }
+ ]
+}

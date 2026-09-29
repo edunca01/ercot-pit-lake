@@ -1,0 +1,104 @@
+{
+ "_sample": {
+  "query": {
+   "parameterCount": 2,
+   "parameters": {
+    "deliveryDateFrom": "2026-09-02",
+    "deliveryDateTo": "2026-09-03"
+   },
+   "sortedBy": "deliveryDate: DESC,hourEnding: ASC"
+  },
+  "rows_fetched": 50,
+  "rows_kept": 10,
+  "rule": "first 2 intervals; price tables: all HB_/LZ_ rows + 5 resource nodes per interval; others: all rows of those intervals"
+ },
+ "data": [
+  [
+   "2026-09-03",
+   "01:00",
+   "RRS",
+   0.19,
+   false
+  ],
+  [
+   "2026-09-03",
+   "01:00",
+   "NSPIN",
+   3.41,
+   false
+  ],
+  [
+   "2026-09-03",
+   "01:00",
+   "REGUP",
+   0.82,
+   false
+  ],
+  [
+   "2026-09-03",
+   "01:00",
+   "REGDN",
+   0.23,
+   false
+  ],
+  [
+   "2026-09-03",
+   "01:00",
+   "ECRS",
+   0.28,
+   false
+  ],
+  [
+   "2026-09-03",
+   "02:00",
+   "REGDN",
+   0.19,
+   false
+  ],
+  [
+   "2026-09-03",
+   "02:00",
+   "REGUP",
+   0.49,
+   false
+  ],
+  [
+   "2026-09-03",
+   "02:00",
+   "RRS",
+   0.19,
+   false
+  ],
+  [
+   "2026-09-03",
+   "02:00",
+   "NSPIN",
+   2.5,
+   false
+  ],
+  [
+   "2026-09-03",
+   "02:00",
+   "ECRS",
+   0.28,
+   false
+  ]
+ ],
+ "fields": [
+  {
+   "name": "deliveryDate"
+  },
+  {
+   "name": "hourEnding"
+  },
+  {
+   "name": "ancillaryType"
+  },
+  {
+   "name": "MCPC"
+  },
+  {
+   "name": "DSTFlag"
+  }
+ ]
+}

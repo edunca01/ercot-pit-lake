@@ -21,6 +21,7 @@ BUILT_IN = {
     "np4-737-cd",
     "np6-788-cd",
     "np6-322-cd",
+    "np6-345-cd",
 }
 PRODUCT_KEY = re.compile(r"^np\d-\d{3}-[a-z]{2}$")
 
@@ -99,13 +100,25 @@ def _product(**changes: object) -> Product:
         "date_params": ("a", "b"),
         "initial_lookback_hours": 6,
         "stale_after_min": 60,
+        "transform": {
+            "time": "hour_interval",
+            "columns": {
+                "delivery_date": ["deliveryDate", "DeliveryDate"],
+                "delivery_hour": ["deliveryHour", "DeliveryHour"],
+                "delivery_interval": ["deliveryInt", "DeliveryInterval"],
+                "as_type": ["ASType", "ASType"],
+                "mcpc_mw": ["MCPC", "MCPC"],
+            },
+        },
     }
     return Product.model_validate({**fields, **changes})
 
 
-def test_every_product_needs_an_endpoint() -> None:
+def test_every_product_needs_an_endpoint_and_a_declaration() -> None:
     with pytest.raises(ValidationError, match="endpoint"):
         _product(endpoint=None)
+    with pytest.raises(ValidationError, match="transform"):
+        _product(transform=None)
 
 
 def test_the_retired_enabled_flag_is_rejected() -> None:

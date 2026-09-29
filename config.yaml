@@ -47,6 +47,14 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 72   # first run with no watermark: how far back to list postings
     stale_after_min: 1560   # 26 h: today's ~12:35 CT posting still missing at ~14:35 CT, as polling ends
+    transform:
+      time: hour_ending
+      columns:                # canonical: [API field, archive CSV header]
+        delivery_date: [deliveryDate, DeliveryDate]
+        hour_ending: [hourEnding, HourEnding]
+        settlement_point: [settlementPoint, SettlementPoint]
+        price_mwh: [settlementPointPrice, SettlementPointPrice]
+        dst_flag: [DSTFlag, DSTFlag]
 
   np4-188-cd:
     name: DAM AS clearing prices (MCPC)
@@ -60,6 +68,14 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 72
     stale_after_min: 1560   # as np4-190-cd
+    transform:
+      time: hour_ending
+      columns:                # canonical: [API field, archive CSV header]
+        delivery_date: [deliveryDate, DeliveryDate]
+        hour_ending: [hourEnding, HourEnding]
+        as_type: [ancillaryType, AncillaryType]
+        mcpc_mw: [MCPC, MCPC]
+        dst_flag: [DSTFlag, DSTFlag]
 
   np6-905-cd:
     name: RT settlement point prices, 15-min
@@ -73,6 +89,16 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 6
     stale_after_min: 60   # normal peak ~19 min just before the next posting
+    transform:
+      time: hour_interval
+      columns:                # canonical: [API field, archive CSV header]
+        delivery_date: [deliveryDate, DeliveryDate]
+        delivery_hour: [deliveryHour, DeliveryHour]
+        delivery_interval: [deliveryInterval, DeliveryInterval]
+        settlement_point: [settlementPoint, SettlementPointName]
+        settlement_point_type: [settlementPointType, SettlementPointType]
+        price_mwh: [settlementPointPrice, SettlementPointPrice]
+        dst_flag: [DSTFlag, DSTFlag]
 
   np6-331-cd:
     name: RT AS clearing prices, 15-min (RTC+B)
@@ -90,6 +116,15 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 6
     stale_after_min: 60   # as np6-905-cd
+    transform:
+      time: hour_interval
+      columns:                # canonical: [API field, archive CSV header]
+        delivery_date: [deliveryDate, DeliveryDate]
+        delivery_hour: [deliveryHour, DeliveryHour]
+        delivery_interval: [deliveryInt, DeliveryInterval]
+        dst_flag: [repeatHourFlag, RepeatedHourFlag]
+        as_type: [ASType, ASType]
+        mcpc_mw: [MCPC, MCPC]
 
   # System series: load, wind and solar reports and the SCED system lambda, melted into the
   # series table. Collected from the dates below; earlier intervals are not gaps.
@@ -106,6 +141,35 @@ products:
     initial_lookback_hours: 6
     stale_after_min: 240   # hourly; normal peak ~65 min
     collected_from: "2026-09-17T11:00:00Z"
+    transform:
+      time: hour_ending
+      columns:                # canonical: [API field, archive CSV header]
+        posted_datetime: [postedDatetime, null]
+        delivery_date: [deliveryDate, DeliveryDate]
+        hour_ending: [hourEnding, HourEnding]
+        coast: [coast, Coast]
+        east: [east, East]
+        far_west: [farWest, FarWest]
+        north: [north, North]
+        north_central: [northCentral, NorthCentral]
+        south_central: [southCentral, SouthCentral]
+        southern: [southern, Southern]
+        west: [west, West]
+        system_total: [systemTotal, SystemTotal]
+        model: [model, Model]
+        in_use: [inUseFlag, InUseFlag]
+        dst_flag: [DSTFlag, DSTFlag]
+      series:
+        coast: "load_fcst:Coast"
+        east: "load_fcst:East"
+        far_west: "load_fcst:FarWest"
+        north: "load_fcst:North"
+        north_central: "load_fcst:NorthCentral"
+        south_central: "load_fcst:SouthCentral"
+        southern: "load_fcst:Southern"
+        west: "load_fcst:West"
+        system_total: "load_fcst:SystemTotal"
+      keep_flag: in_use
 
   np4-732-cd:
     name: Wind power production, hourly actual and forecast
@@ -120,6 +184,48 @@ products:
     initial_lookback_hours: 6
     stale_after_min: 240   # as np3-565-cd
     collected_from: "2026-09-17T11:00:00Z"
+    transform:
+      time: hour_ending
+      columns:                # canonical: [API field, archive CSV header]
+        posted_datetime: [postedDatetime, null]
+        delivery_date: [deliveryDate, DELIVERY_DATE]
+        hour_ending: [hourEnding, HOUR_ENDING]
+        GEN_SYSTEM_WIDE: [genSystemWide, SYSTEM_WIDE_GEN]
+        COP_HSL_SYSTEM_WIDE: [COPHSLSystemWide, COP_HSL_SYSTEM_WIDE]
+        STWPF_SYSTEM_WIDE: [STWPFSystemWide, STWPF_SYSTEM_WIDE]
+        WGRPP_SYSTEM_WIDE: [WGRPPSystemWide, WGRPP_SYSTEM_WIDE]
+        GEN_LZ_SOUTH_HOUSTON: [genLoadZoneSouthHouston, GEN_LZ_SOUTH_HOUSTON]
+        COP_HSL_LZ_SOUTH_HOUSTON: [COPHSLLoadZoneSouthHouston, COP_HSL_LZ_SOUTH_HOUSTON]
+        STWPF_LZ_SOUTH_HOUSTON: [STWPFLoadZoneSouthHouston, STWPF_LZ_SOUTH_HOUSTON]
+        WGRPP_LZ_SOUTH_HOUSTON: [WGRPPLoadZoneSouthHouston, WGRPP_LZ_SOUTH_HOUSTON]
+        GEN_LZ_WEST: [genLoadZoneWest, GEN_LZ_WEST]
+        COP_HSL_LZ_WEST: [COPHSLLoadZoneWest, COP_HSL_LZ_WEST]
+        STWPF_LZ_WEST: [STWPFLoadZoneWest, STWPF_LZ_WEST]
+        WGRPP_LZ_WEST: [WGRPPLoadZoneWest, WGRPP_LZ_WEST]
+        GEN_LZ_NORTH: [genLoadZoneNorth, GEN_LZ_NORTH]
+        COP_HSL_LZ_NORTH: [COPHSLLoadZoneNorth, COP_HSL_LZ_NORTH]
+        STWPF_LZ_NORTH: [STWPFLoadZoneNorth, STWPF_LZ_NORTH]
+        WGRPP_LZ_NORTH: [WGRPPLoadZoneNorth, WGRPP_LZ_NORTH]
+        HSL_SYSTEM_WIDE: [HSLSystemWide, SYSTEM_WIDE_HSL]
+        dst_flag: [DSTFlag, DSTFlag]
+      series:
+        GEN_SYSTEM_WIDE: "wind:GEN_SYSTEM_WIDE"
+        COP_HSL_SYSTEM_WIDE: "wind:COP_HSL_SYSTEM_WIDE"
+        STWPF_SYSTEM_WIDE: "wind:STWPF_SYSTEM_WIDE"
+        WGRPP_SYSTEM_WIDE: "wind:WGRPP_SYSTEM_WIDE"
+        GEN_LZ_SOUTH_HOUSTON: "wind:GEN_LZ_SOUTH_HOUSTON"
+        COP_HSL_LZ_SOUTH_HOUSTON: "wind:COP_HSL_LZ_SOUTH_HOUSTON"
+        STWPF_LZ_SOUTH_HOUSTON: "wind:STWPF_LZ_SOUTH_HOUSTON"
+        WGRPP_LZ_SOUTH_HOUSTON: "wind:WGRPP_LZ_SOUTH_HOUSTON"
+        GEN_LZ_WEST: "wind:GEN_LZ_WEST"
+        COP_HSL_LZ_WEST: "wind:COP_HSL_LZ_WEST"
+        STWPF_LZ_WEST: "wind:STWPF_LZ_WEST"
+        WGRPP_LZ_WEST: "wind:WGRPP_LZ_WEST"
+        GEN_LZ_NORTH: "wind:GEN_LZ_NORTH"
+        COP_HSL_LZ_NORTH: "wind:COP_HSL_LZ_NORTH"
+        STWPF_LZ_NORTH: "wind:STWPF_LZ_NORTH"
+        WGRPP_LZ_NORTH: "wind:WGRPP_LZ_NORTH"
+        HSL_SYSTEM_WIDE: "wind:HSL_SYSTEM_WIDE"
 
   np4-737-cd:
     name: Solar power production, hourly actual and forecast
@@ -134,6 +240,24 @@ products:
     initial_lookback_hours: 6
     stale_after_min: 240   # as np3-565-cd
     collected_from: "2026-09-17T11:00:00Z"
+    transform:
+      time: hour_ending
+      columns:                # canonical: [API field, archive CSV header]
+        posted_datetime: [postedDatetime, null]
+        delivery_date: [deliveryDate, DELIVERY_DATE]
+        hour_ending: [hourEnding, HOUR_ENDING]
+        GEN_SYSTEM_WIDE: [genSystemWide, SYSTEM_WIDE_GEN]
+        COP_HSL_SYSTEM_WIDE: [COPHSLSystemWide, COP_HSL_SYSTEM_WIDE]
+        STPPF_SYSTEM_WIDE: [STPPFSystemWide, STPPF_SYSTEM_WIDE]
+        PVGRPP_SYSTEM_WIDE: [PVGRPPSystemWide, PVGRPP_SYSTEM_WIDE]
+        HSL_SYSTEM_WIDE: [HSLSystemWide, SYSTEM_WIDE_HSL]
+        dst_flag: [DSTFlag, DSTFlag]
+      series:
+        GEN_SYSTEM_WIDE: "solar:GEN_SYSTEM_WIDE"
+        COP_HSL_SYSTEM_WIDE: "solar:COP_HSL_SYSTEM_WIDE"
+        STPPF_SYSTEM_WIDE: "solar:STPPF_SYSTEM_WIDE"
+        PVGRPP_SYSTEM_WIDE: "solar:PVGRPP_SYSTEM_WIDE"
+        HSL_SYSTEM_WIDE: "solar:HSL_SYSTEM_WIDE"
 
   np6-788-cd:
     name: SCED LMPs by resource node, load zone and hub, 5-min
@@ -148,6 +272,14 @@ products:
     initial_lookback_hours: 2
     stale_after_min: 45   # SCED runs every 5 min; normal 1-5 min, observed peak ~10
     collected_from: "2026-09-17T15:05:00Z"
+    transform:
+      time: sced_timestamp
+      columns:                # canonical: [API field, archive CSV header]
+        sced_timestamp: [SCEDTimestamp, SCEDTimestamp]
+        dst_flag: [repeatHourFlag, RepeatedHourFlag]
+        settlement_point: [settlementPoint, SettlementPoint]
+        price_mwh: [LMP, LMP]
+      keep_point_prefixes: [HB_, LZ_]
 
   np6-322-cd:
     name: SCED system lambda, 5-min
@@ -162,3 +294,52 @@ products:
     initial_lookback_hours: 2
     stale_after_min: 45   # as np6-788-cd
     collected_from: "2026-09-17T15:05:00Z"
+    transform:
+      time: sced_timestamp
+      columns:                # canonical: [API field, archive CSV header]
+        sced_timestamp: [SCEDTimestamp, SCEDTimeStamp]
+        dst_flag: [repeatedHourFlag, RepeatedHourFlag]
+        capped: [cappedSystemLambda, CappedSystemLambda]
+        uncapped: [uncappedSystemLambda, UncappedSystemLambda]
+      series:
+        capped: "lambda:capped"
+        uncapped: "lambda:uncapped"
+
+  np6-345-cd:
+    name: Actual system load by weather zone (hourly, previous operating day)
+    archive_id: NP6-345-CD
+    endpoint: /np6-345-cd/act_sys_load_by_wzn
+    table: series
+    cadence: daily
+    interval_minutes: 60
+    post_time_ct: "~05:50 daily, for the previous operating day (observed)"
+    schedule: "cron(0/5 5-7 * * ? *)"   # poll every 5 min 05:00-07:55 CT; first hit takes it
+    date_params: [operatingDayFrom, operatingDayTo]
+    initial_lookback_hours: 72
+    stale_after_min: 1560   # 26 h: today's ~05:50 CT posting still missing at ~07:50 CT, as polling ends
+    transform:
+      time: hour_ending
+      columns:                # canonical: [API field, archive CSV header]
+        delivery_date: [operatingDay, OperDay]
+        hour_ending: [hourEnding, HourEnding]
+        coast: [coast, COAST]
+        east: [east, EAST]
+        far_west: [farWest, FAR_WEST]
+        north: [north, NORTH]
+        north_central: [northC, NORTH_C]
+        southern: [southern, SOUTHERN]
+        south_central: [southC, SOUTH_C]
+        west: [west, WEST]
+        system_total: [total, TOTAL]
+        dst_flag: [DSTFlag, DSTFlag]
+      # the same names as the load forecast's, so actual and forecast line up zone by zone
+      series:
+        coast: "load_act:Coast"
+        east: "load_act:East"
+        far_west: "load_act:FarWest"
+        north: "load_act:North"
+        north_central: "load_act:NorthCentral"
+        southern: "load_act:Southern"
+        south_central: "load_act:SouthCentral"
+        west: "load_act:West"
+        system_total: "load_act:SystemTotal"

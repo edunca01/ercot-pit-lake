@@ -1,0 +1,117 @@
+{
+ "_sample": {
+  "query": {
+   "parameterCount": 2,
+   "parameters": {
+    "deliveryDateFrom": "2026-09-02",
+    "deliveryDateTo": "2026-09-03"
+   },
+   "sortedBy": "deliveryDate: DESC,deliveryHour: ASC,repeatHourFlag: ASC,deliveryInt: ASC,ASType: ASC"
+  },
+  "rows_fetched": 50,
+  "rows_kept": 10,
+  "rule": "first 2 intervals; price tables: all HB_/LZ_ rows + 5 resource nodes per interval; others: all rows of those intervals"
+ },
+ "data": [
+  [
+   "2026-09-03",
+   1,
+   1,
+   false,
+   "ECRS",
+   0.25
+  ],
+  [
+   "2026-09-03",
+   1,
+   1,
+   false,
+   "NSPIN",
+   0.99
+  ],
+  [
+   "2026-09-03",
+   1,
+   1,
+   false,
+   "REGDN",
+   0.72
+  ],
+  [
+   "2026-09-03",
+   1,
+   1,
+   false,
+   "REGUP",
+   1.98
+  ],
+  [
+   "2026-09-03",
+   1,
+   1,
+   false,
+   "RRS",
+   0.13
+  ],
+  [
+   "2026-09-03",
+   1,
+   2,
+   false,
+   "ECRS",
+   0.24
+  ],
+  [
+   "2026-09-03",
+   1,
+   2,
+   false,
+   "NSPIN",
+   0.96
+  ],
+  [
+   "2026-09-03",
+   1,
+   2,
+   false,
+   "REGDN",
+   0.96
+  ],
+  [
+   "2026-09-03",
+   1,
+   2,
+   false,
+   "REGUP",
+   1.67
+  ],
+  [
+   "2026-09-03",
+   1,
+   2,
+   false,
+   "RRS",
+   0.12
+  ]
+ ],
+ "fields": [
+  {
+   "name": "deliveryDate"
+  },
+  {
+   "name": "deliveryHour"
+  },
+  {
+   "name": "deliveryInt"
+  },
+  {
+   "name": "repeatHourFlag"
+  },
+  {
+   "name": "ASType"
+  },
+  {
+   "name": "MCPC"
+  }
+ ]
+}
