@@ -221,7 +221,7 @@ class ErcotClient:
             page += 1
         docs = [
             ArchiveDoc(archive_id, doc_id, posted, name)
-            for doc_id, posted, name in _resolve_repeated_hour(listed)
+            for doc_id, posted, name in resolve_repeated_hour(listed)
             if post_from < posted <= post_to
         ]
         yield from sorted(docs, key=lambda d: (d.posted_at, d.doc_id))
@@ -256,7 +256,7 @@ def _retry_after(resp: httpx.Response) -> float:
         return 0.0
 
 
-def _resolve_repeated_hour(
+def resolve_repeated_hour(
     listed: list[tuple[int, datetime, str]],
 ) -> list[tuple[int, datetime, str]]:
     """(doc id, CT wall-clock time, name) -> (doc id, UTC, name).
