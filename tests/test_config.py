@@ -237,3 +237,57 @@ def test_secrets_never_render(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_secret_value_is_validated(text: str, match: str) -> None:
     with pytest.raises(RuntimeError, match=match):
         m.credentials_from_json(text, source="ercot/test")
+
+
+# -- transform declarations ----------------------------------------------------------------
+
+_SPP_DECL: dict[str, object] = {
+    "time": "hour_interval",
+    "columns": {
+        "delivery_date": ["deliveryDate", "DeliveryDate"],
+        "delivery_hour": ["deliveryHour", "DeliveryHour"],
+        "delivery_interval": ["deliveryInterval", "DeliveryInterval"],
+        "settlement_point": ["settlementPoint", "SettlementPointName"],
+        "price_mwh": ["settlementPointPrice", "SettlementPointPrice"],
+    },
+}
+
+
+def _decl(**changes: object) -> dict[str, object]:
+    return {**_SPP_DECL, **changes}
+
+
+def _cols(**changes: object) -> dict[str, object]:
+    return {**_SPP_DECL["columns"], **changes}  # type: ignore[dict-item]
+
+
+def test_a_valid_declaration() -> None:
+    p = _product(table="spp", transform=_decl())
+    assert p.transform is not None
+    assert p.transform.columns["settlement_point"] == ("settlementPoint", "SettlementPointName")
+
+
+@pytest.mark.parametrize(
+    ("changes", "match"),
+    [
+        ({"time": "sced_timestamp"}, "needs columns \\['sced_timestamp'\\]"),
+        ({"columns": _cols(delivery_hour=[None, None])}, "in neither format"),
+        ({"columns": _cols(price_mwh=["settlementPoint", "Price"])}, "declared twice"),
+        ({"keep_flag": "in_use"}, "undeclared columns: \\['in_use'\\]"),
+        ({"series": {"price_mwh": "x:y"}}, "only for them"),
+        ({"columns": {k: v for k, v in _cols().items() if k != "price_mwh"}}, "needs columns"),
+    ],
+)
+def test_bad_declarations_are_rejected(changes: dict[str, object], match: str) -> None:
+    with pytest.raises(ValidationError, match=match):
+        _product(table="spp", transform=_decl(**changes))
+
+
+def test_series_tables_need_series_and_prefixes_are_spp_only() -> None:
+    with pytest.raises(ValidationError, match="required for series tables"):
+        _product(table="series", transform=_decl())
+    with pytest.raises(ValidationError, match="spp tables only"):
+        _product(
+            table="series",
+            transform=_decl(series={"price_mwh": "x:price"}, keep_point_prefixes=["HB_"]),
+        )
