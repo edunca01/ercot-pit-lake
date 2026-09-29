@@ -17,6 +17,30 @@ EventBridge Scheduler → Lambda (arm64 container) → S3 (raw zips + curated Pa
 watermarks · DuckDB for reads · two CloudWatch alarms and a daily report · Terraform · GitHub
 Actions with OIDC. Sized for the AWS free tier.
 
+## Try it offline
+
+No ERCOT account and no AWS needed: the committed samples are real ERCOT postings, and the
+whole pipeline runs on them into a local lake.
+
+```
+make setup
+make ingest OFFLINE=1          # ten products -> ./data (raw zips, curated Parquet, catalog)
+```
+
+```python
+from datetime import UTC, date, datetime
+from ercot_lake import LakeReader
+
+with LakeReader("./data") as lake:
+    before = lake.spp_by_date(
+        "np4-190-cd", date(2026, 9, 29), as_of=datetime(2026, 9, 28, 18, 51, 10, tzinfo=UTC)
+    )
+    after = lake.spp_by_date(
+        "np4-190-cd", date(2026, 9, 29), as_of=datetime(2026, 9, 28, 18, 51, 11, tzinfo=UTC)
+    )
+    print(before.num_rows, after.num_rows)  # 0 40: nothing is known before it was posted
+```
+
 ## Develop
 
 Open in a Codespace or the dev container, or locally with `uv` and Python 3.12:
@@ -24,6 +48,9 @@ Open in a Codespace or the dev container, or locally with `uv` and Python 3.12:
 ```
 make setup
 make check        # lint, mypy strict, tests; offline, no credentials
+make ingest       # live, from the watermark (needs ERCOT_* credentials, see .env.example)
+uv run backfill --product np4-190-cd --from 2026-09-01 --to 2026-09-02 --source bundles
+make docker-build # the Lambda image
 ```
 
 ## Contributions
