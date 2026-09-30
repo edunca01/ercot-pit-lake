@@ -7,6 +7,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ["lake-v*"]
 
 permissions:
   contents: read
@@ -54,6 +55,31 @@ jobs:
         run: make tf-fmt
       - name: Validate and test (mocked AWS provider)
         run: make tf-test
+
+  # A release tag is installable the way consumers install it, and names the version it holds.
+  release-install:
+    if: startsWith(github.ref, 'refs/tags/lake-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: astral-sh/setup-uv@v7
+      - name: Install ercot-lake from the tag
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          uv venv /tmp/consumer
+          uv pip install --python /tmp/consumer \
+            "ercot-lake @ git+https://github.com/$REPO@$TAG#subdirectory=lake"
+          /tmp/consumer/bin/python - <<'PY'
+          import importlib.metadata as md
+          import os
+          import ercot_lake
+          tag = os.environ["TAG"].removeprefix("lake-v")
+          package = md.version("ercot-lake")
+          contract = ercot_lake.CONTRACT_VERSION
+          print(f"tag {tag}, package {package}, contract {contract}")
+          assert tag == package == contract, "tag, package and contract versions differ"
+          PY
 
   secrets:
     runs-on: ubuntu-latest
