@@ -15,7 +15,9 @@ Guarantees:
   that partition, and a backfill writes old postings now.
 - The merged file is written before any source is deleted, so an interruption can leave extra
   files but never lose rows.
-- A partition whose files disagree on schema is skipped and logged, never coerced.
+- A partition with a file that differs from the contract (columns, types, or a null in a
+  required column) is skipped and logged, never coerced. A file that differs only in the
+  nullable flag is relabelled, since it holds the same data.
 """
 
 from __future__ import annotations
@@ -29,7 +31,7 @@ from typing import Any, Literal
 
 import pyarrow as pa
 
-from ercot_lake.contract import BUSINESS_KEY, CURATED_PREFIX, merged_key
+from ercot_lake.contract import BUSINESS_KEY, CURATED_PREFIX, SCHEMAS, merged_key
 from ercot_lake.timeutil import now_utc
 from ingest.config import Product, Settings
 from ingest.lake import Lake
@@ -90,12 +92,12 @@ def _merge(  # noqa: PLR0913  (keyword-only after the partition)
     now: datetime,
     summary: CompactionSummary,
 ) -> None:
-    tables = {k: lake.read_table(k) for k in keys}
-    schema = next(iter(tables.values())).schema
-    if any(not t.schema.equals(schema) for t in tables.values()):
-        log.warning("%s %s: files disagree on schema; left as they are", product.key, day)
+    read = {k: _to_contract(lake.read_table(k), SCHEMAS[product.table]) for k in keys}
+    if any(t is None for t in read.values()):
+        log.warning("%s %s: a file does not match the contract; left as it is", product.key, day)
         summary.skipped.append(day)
         return
+    tables = {k: t for k, t in read.items() if t is not None}
     leftovers = _already_merged(tables)
     to_merge = [t for k, t in tables.items() if k not in leftovers]
     merged = pa.concat_tables(to_merge)
@@ -116,6 +118,22 @@ def _merge(  # noqa: PLR0913  (keyword-only after the partition)
     summary.rows += merged.num_rows
     summary.leftovers_removed += len(leftovers)
     log.info("%s %s: %d files, %d rows -> %s", product.key, day, len(keys), merged.num_rows, target)
+
+
+def _to_contract(table: pa.Table, schema: pa.Schema) -> pa.Table | None:
+    """The table under the contract's exact schema, or None when it really differs.
+
+    Writers set the nullable flag loosely; a file with the contract's columns and types and no
+    null in a required column is the same data, so it is relabelled rather than left unmerged
+    forever. Different columns or types, or an actual null, are real differences.
+    """
+    if table.schema.equals(schema):
+        return table
+    if [(f.name, f.type) for f in table.schema] != [(f.name, f.type) for f in schema]:
+        return None
+    if any(not f.nullable and table.column(f.name).null_count for f in schema):
+        return None
+    return table.cast(schema)
 
 
 def _already_merged(tables: dict[str, pa.Table]) -> set[str]:
