@@ -22,6 +22,7 @@ ercot:
   timeout_s: 60
   max_retries: 8             # backfill and explicit windows
   live_max_retries: 3        # scheduled runs give up within a minute; the next run is the retry
+  live_request_budget_s: 45  # ...and one request never holds a scheduled run longer than this
   min_interval_s: 2.0        # ERCOT returns 429 readily; pace every request
 
 state:

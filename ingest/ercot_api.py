@@ -61,8 +61,9 @@ class ArchiveDoc:
 
 @dataclass
 class ErcotClient:
-    """``live=True`` for scheduled runs: they give up after ``live_max_retries`` because the
-    next run is the retry. Backfills and explicit windows keep trying up to ``max_retries``."""
+    """``live=True`` for scheduled runs: they give up after ``live_max_retries``, or once a
+    request has used ``live_request_budget_s``, because the next run is the retry. Backfills
+    and explicit windows keep trying up to ``max_retries``."""
 
     cfg: ErcotConfig
     creds: Credentials
@@ -126,39 +127,56 @@ class ErcotClient:
         self._last_request = time.monotonic()
 
     def _request(self, method: str, url: str, **kw: Any) -> httpx.Response:
-        problem, last_status = "no attempt", None
+        problem, last_status, made = "no attempt", None, 0
+        deadline = time.monotonic() + self.cfg.live_request_budget_s if self.live else None
         for attempt in range(self.max_retries + 1):
             self._pace()
+            timeout = self.cfg.timeout_s
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    problem = f"{problem}, then out of time"
+                    break
+                timeout = min(timeout, remaining)
+            made += 1
             try:
-                resp = self._http.request(method, url, headers=self._headers(), **kw)
+                resp = self._http.request(
+                    method, url, headers=self._headers(), timeout=timeout, **kw
+                )
             except httpx.TransportError as exc:  # timeouts, resets, DNS
                 problem, last_status = type(exc).__name__, None
-                self._backoff(url, problem, attempt, hinted=0.0)
+                self._backoff(url, problem, attempt, hinted=0.0, deadline=deadline)
                 continue
             if resp.status_code == httpx.codes.FOUND and _redirects_to_itself(resp):
                 # ERCOT's gateway sometimes answers 302 with the request's own URL as the
                 # Location: a bounce under load, not a move. Treat it like a 503.
                 problem, last_status = str(resp.status_code), resp.status_code
-                self._backoff(url, problem, attempt, hinted=0.0)
+                self._backoff(url, problem, attempt, hinted=0.0, deadline=deadline)
                 continue
             if resp.status_code in _RETRY_STATUS:
                 # ERCOT's Retry-After is a few seconds even while it keeps refusing; grow the
                 # wait exponentially (capped) so a burst drains instead of exhausting retries.
                 problem, last_status = str(resp.status_code), resp.status_code
-                self._backoff(url, problem, attempt, hinted=_retry_after(resp))
+                self._backoff(url, problem, attempt, hinted=_retry_after(resp), deadline=deadline)
                 continue
             if resp.status_code == httpx.codes.UNAUTHORIZED and attempt == 0:
                 self._token = None  # expired early or revoked: one fresh token, then give up
                 continue
             resp.raise_for_status()
             return resp
-        msg = f"gave up on {url} after {self.max_retries + 1} attempts (last: {problem})"
+        msg = f"gave up on {url} after {made} attempts (last: {problem})"
         raise RetriesExhaustedError(msg, last_status=last_status)
 
-    def _backoff(self, url: str, problem: str, attempt: int, *, hinted: float) -> None:
+    def _backoff(
+        self, url: str, problem: str, attempt: int, *, hinted: float, deadline: float | None
+    ) -> None:
         if attempt >= self.max_retries:
             return  # no attempt left to wait for
         wait = min(max(hinted, 2.0**attempt), _MAX_BACKOFF_S)
+        if deadline is not None:
+            wait = min(wait, deadline - time.monotonic())
+            if wait <= 0:
+                return  # out of time: the loop gives up without sleeping
         log.warning("%s from %s; sleeping %.1fs (attempt %d)", problem, url, wait, attempt + 1)
         time.sleep(wait)
 

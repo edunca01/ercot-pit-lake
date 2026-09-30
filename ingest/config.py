@@ -42,6 +42,9 @@ class ErcotConfig(_Strict):
     max_retries: int = Field(ge=0)
     # Scheduled runs give up well inside the polling interval; the next run is the retry.
     live_max_retries: int = Field(default=3, ge=0)
+    # ... and each of their requests, retries included, stops within this many seconds, so a
+    # slow ERCOT cannot hold a run past the next one and pile runs up.
+    live_request_budget_s: float = Field(default=45.0, gt=0)
     min_interval_s: float = Field(default=0.0, ge=0)
 
 
