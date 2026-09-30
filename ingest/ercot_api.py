@@ -28,6 +28,11 @@ _MAX_BACKOFF_S = 60.0
 _RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
+def _redirects_to_itself(resp: httpx.Response) -> bool:
+    location = resp.headers.get("location")
+    return location is not None and resp.request.url.join(location) == resp.request.url
+
+
 class RetriesExhaustedError(RuntimeError):
     """Every attempt was throttled, failed server-side or never got a response."""
 
@@ -128,6 +133,12 @@ class ErcotClient:
                 resp = self._http.request(method, url, headers=self._headers(), **kw)
             except httpx.TransportError as exc:  # timeouts, resets, DNS
                 problem, last_status = type(exc).__name__, None
+                self._backoff(url, problem, attempt, hinted=0.0)
+                continue
+            if resp.status_code == httpx.codes.FOUND and _redirects_to_itself(resp):
+                # ERCOT's gateway sometimes answers 302 with the request's own URL as the
+                # Location: a bounce under load, not a move. Treat it like a 503.
+                problem, last_status = str(resp.status_code), resp.status_code
                 self._backoff(url, problem, attempt, hinted=0.0)
                 continue
             if resp.status_code in _RETRY_STATUS:

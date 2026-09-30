@@ -126,6 +126,25 @@ def test_5xx_is_retried(status: int, sleeps: list[float]) -> None:
     assert sleeps == [1.0]
 
 
+def test_a_302_back_to_the_same_url_is_retried(sleeps: list[float]) -> None:
+    replies = iter([None, httpx.Response(200, json={"ok": 1})])
+
+    def api(req: httpx.Request) -> httpx.Response:
+        reply = next(replies)
+        return reply or httpx.Response(302, headers={"Location": str(req.url)})
+
+    with _client(_authed(api)) as c:
+        assert c.get("/x", {"page": 1}) == {"ok": 1}
+    assert sleeps == [1.0]
+
+
+def test_a_302_elsewhere_is_not_retried(sleeps: list[float]) -> None:
+    api = _authed(lambda _: httpx.Response(302, headers={"Location": "https://elsewhere/"}))
+    with _client(api) as c, pytest.raises(httpx.HTTPStatusError):
+        c.get("/x")
+    assert sleeps == []
+
+
 def test_transport_errors_are_retried(sleeps: list[float]) -> None:
     attempts = {"n": 0}
 
