@@ -1,5 +1,6 @@
 """Lambda entry points. The container image's CMD selects one: ``ingest.handler.ingest``,
-``ingest.handler.backfill``, ``ingest.handler.compact`` or ``ingest.handler.freshness``.
+``ingest.handler.backfill``, ``ingest.handler.compact``, ``ingest.handler.freshness`` or
+``ingest.handler.daily_report``.
 
 Event: ``{"product": "np6-905-cd" | "all", "from"?: ISO, "to"?: ISO, "source"?: "archive" |
 "bundles" | "hist", "delivery_from"?: date, "delivery_to"?: date, "log_level"?: "INFO"}``.
@@ -17,8 +18,9 @@ from typing import Any
 from ercot_lake.timeutil import now_utc
 from ingest import compact as _compact
 from ingest import freshness as _freshness
+from ingest import report as _report
 from ingest.cli import SOURCES, configure_logging, parse_when, run_products
-from ingest.config import settings
+from ingest.config import load_report_targets, settings
 from ingest.lake import Lake
 from ingest.run import Window
 
@@ -88,3 +90,25 @@ def freshness(event: dict[str, Any], context: object = None) -> dict[str, Any]:
     now = now_utc()
     results = _freshness.publish(cfg, Lake(cfg.lake), boto3.client("cloudwatch"), now=now)
     return {"results": [f.as_dict(now) for f in results]}
+
+
+def daily_report(event: dict[str, Any], context: object = None) -> dict[str, Any]:
+    """Build and send the daily report: the full record by email, problems and KPIs to Slack.
+    Either channel may be absent."""
+    import boto3  # noqa: PLC0415  (only the deployed path needs the AWS SDK)
+
+    configure_logging(str(event.get("log_level", "INFO")))
+    cfg = settings()
+    targets = load_report_targets()
+    aws = _report.Aws(boto3.client("cloudwatch"), boto3.client("logs"))
+    report = _report.build(cfg, Lake(cfg.lake), now=now_utc(), aws=aws, targets=targets)
+    sns = boto3.client("sns") if targets.email_topic or targets.slack_topic else None
+    sent = _report.publish(
+        report, sns, email_topic=targets.email_topic, slack_topic=targets.slack_topic
+    )
+    return {
+        "sent": sent,
+        "problems": report.problems(),
+        "kpis": report.kpis(),
+        "coverage": [c.as_dict() for c in report.coverage],
+    }
