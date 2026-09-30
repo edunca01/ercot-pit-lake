@@ -1,0 +1,22 @@
+# Only the keys Terraform reads: product schedules and the extra objects.
+products:
+  a-product:
+    schedule: "cron(*/5 * * * ? *)"
+  b-product:
+    schedule: "cron(0/5 12-14 * * ? *)"
+
+extra_watches:
+  - name: in-lake
+    key: status/heartbeat.json
+    field: last_run
+    stale_after_min: 30
+  - name: elsewhere
+    key: status/other.json
+    field: at
+    stale_after_min: 60
+    bucket: other-bucket
+
+report_sections:
+  - title: Elsewhere
+    key: reports/daily.json
+    bucket: other-bucket

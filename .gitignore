@@ -31,6 +31,8 @@ samples/**/*.zip
 
 # Terraform: deployment-specific values never enter this repo
 infra/**/.terraform/
+# an example root; a deployment pins its own providers
+infra/**/.terraform.lock.hcl
 infra/**/*.tfstate*
 infra/**/*.tfvars
 !infra/**/*.tfvars.example

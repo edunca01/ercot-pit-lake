@@ -1,0 +1,9 @@
+name_prefix = "my-ercot"
+region      = "us-east-1"
+image_tag   = "latest"
+
+# alert_email = "alerts@example.com"
+# slack = { configuration_name = "ercot-alerts", team_id = "<team id>", channel_id = "<channel id>" }
+
+# github_sub_prefix = "repo:<owner>@<owner id>/<repo>@<repo id>"
+# tfstate_bucket    = "my-tfstate-bucket"

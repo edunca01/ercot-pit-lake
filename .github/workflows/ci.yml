@@ -1,4 +1,5 @@
-# Needs no secrets and no cloud account: lint, types, tests, gitleaks.
+# Needs no secrets and no cloud account: lint, types, tests, Terraform against a mocked
+# provider, gitleaks.
 # Nothing here deploys; a deployment is its own Terraform root with its own credentials.
 name: ci
 
@@ -40,6 +41,19 @@ jobs:
         run: |
           uv venv /tmp/lake-only && uv pip install --python /tmp/lake-only ./lake
           /tmp/lake-only/bin/python -c "import ercot_lake; print(ercot_lake.CONTRACT_VERSION)"
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.1
+          terraform_wrapper: false
+      - name: Format
+        run: make tf-fmt
+      - name: Validate and test (mocked AWS provider)
+        run: make tf-test
 
   secrets:
     runs-on: ubuntu-latest
