@@ -126,6 +126,51 @@ def test_5xx_is_retried(status: int, sleeps: list[float]) -> None:
     assert sleeps == [1.0]
 
 
+def test_a_302_back_to_the_same_url_is_retried(sleeps: list[float]) -> None:
+    replies = iter([None, httpx.Response(200, json={"ok": 1})])
+
+    def api(req: httpx.Request) -> httpx.Response:
+        reply = next(replies)
+        return reply or httpx.Response(302, headers={"Location": str(req.url)})
+
+    with _client(_authed(api)) as c:
+        assert c.get("/x", {"page": 1}) == {"ok": 1}
+    assert sleeps == [1.0]
+
+
+def test_a_302_elsewhere_is_not_retried(sleeps: list[float]) -> None:
+    api = _authed(lambda _: httpx.Response(302, headers={"Location": "https://elsewhere/"}))
+    with _client(api) as c, pytest.raises(httpx.HTTPStatusError):
+        c.get("/x")
+    assert sleeps == []
+
+
+def test_a_live_request_stops_at_its_time_budget(
+    monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    # Each attempt times out after using 20 s of a 45 s budget: the third is never made, and
+    # the attempts themselves are capped at what remains of the budget.
+    now = {"t": 0.0}
+    monkeypatch.setattr("ingest.ercot_api.time.monotonic", lambda: now["t"])
+    timeouts: list[float] = []
+
+    def api(req: httpx.Request) -> httpx.Response:
+        timeouts.append(req.extensions["timeout"]["read"])
+        now["t"] += 20.0 if len(timeouts) == 1 else 30.0
+        raise httpx.ReadTimeout("slow", request=req)
+
+    budget = CFG.model_copy(
+        update={"timeout_s": 60.0, "live_request_budget_s": 45.0, "live_max_retries": 5}
+    )
+    with (
+        _client(_authed(api), budget, live=True) as c,
+        pytest.raises(RetriesExhaustedError, match=r"after 2 attempts .*out of time"),
+    ):
+        c.get("/x")
+    assert timeouts == [45.0, 25.0]
+    assert sleeps == [1.0]
+
+
 def test_transport_errors_are_retried(sleeps: list[float]) -> None:
     attempts = {"n": 0}
 
