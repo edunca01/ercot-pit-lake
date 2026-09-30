@@ -15,6 +15,8 @@ Guarantees:
   that partition, and a backfill writes old postings now.
 - The merged file is written before any source is deleted, so an interruption can leave extra
   files but never lose rows.
+- A run can be told to stop between partitions (``stop``), so a large backlog is worked
+  through over several runs instead of one being killed mid-partition by its time limit.
 - A partition with a file that differs from the contract (columns, types, or a null in a
   required column) is skipped and logged, never coerced. A file that differs only in the
   nullable flag is relabelled, since it holds the same data.
@@ -25,6 +27,7 @@ from __future__ import annotations
 import logging
 import re
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Literal
@@ -53,6 +56,7 @@ class CompactionSummary:
     rows: int = 0
     leftovers_removed: int = 0
     skipped: list[str] = field(default_factory=list)
+    stopped: bool = False  # out of time: the rest is left for the next run
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -62,13 +66,20 @@ class CompactionSummary:
             "rows": self.rows,
             "leftovers_removed": self.leftovers_removed,
             "skipped": self.skipped,
+            "stopped": self.stopped,
         }
 
 
 def compact_product(
-    product: Product, lake: Lake, *, now: datetime, min_age: timedelta = MIN_AGE
+    product: Product,
+    lake: Lake,
+    *,
+    now: datetime,
+    min_age: timedelta = MIN_AGE,
+    stop: Callable[[], bool] | None = None,
 ) -> CompactionSummary:
-    """Merge every partition of one product that has more than one old enough file."""
+    """Merge every partition of one product that has more than one old enough file, oldest
+    first, until ``stop()`` says the run is out of time."""
     summary = CompactionSummary(product.key)
     partitions: dict[str, list[str]] = {}
     for key, modified in lake.list_files(f"{CURATED_PREFIX}/{product.key}/"):
@@ -79,6 +90,10 @@ def compact_product(
     for day, keys in sorted(partitions.items()):
         if len(keys) < 2:
             continue  # one file is already compact; rewriting it would only change its name
+        if stop is not None and stop():
+            summary.stopped = True
+            log.info("%s: out of time; %s onwards left for the next run", product.key, day)
+            break
         _merge(product, lake, day, keys, now=now, summary=summary)
     return summary
 
@@ -159,8 +174,17 @@ def _rows(table: pa.Table) -> list[tuple[Any, ...]]:
 
 
 def compact(
-    settings: Settings, lake: Lake, *, now: datetime | None = None
+    settings: Settings,
+    lake: Lake,
+    *,
+    now: datetime | None = None,
+    stop: Callable[[], bool] | None = None,
 ) -> list[CompactionSummary]:
-    """Compact every configured product."""
+    """Compact every configured product, until ``stop()`` says the run is out of time."""
     when = now or now_utc()
-    return [compact_product(p, lake, now=when) for p in settings.products.values()]
+    out = []
+    for p in settings.products.values():
+        out.append(compact_product(p, lake, now=when, stop=stop))
+        if out[-1].stopped:
+            break
+    return out
