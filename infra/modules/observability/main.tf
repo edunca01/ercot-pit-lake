@@ -248,6 +248,21 @@ resource "aws_lambda_function" "freshness" {
   depends_on = [aws_iam_role_policy.freshness]
 }
 
+# Asynchronous invocations: drop failed and stale events rather than retry them later. A
+# missed freshness check is covered by the next one five minutes on, and a failed report is
+# the report alarm's job, not a late duplicate's.
+resource "aws_lambda_function_event_invoke_config" "freshness" {
+  function_name                = aws_lambda_function.freshness.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 240
+}
+
+resource "aws_lambda_function_event_invoke_config" "daily_report" {
+  function_name                = aws_lambda_function.daily_report.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 3600
+}
+
 data "aws_iam_policy_document" "scheduler_assume" {
   statement {
     actions = ["sts:AssumeRole"]

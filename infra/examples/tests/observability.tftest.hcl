@@ -40,6 +40,15 @@ run "no_channels" {
   }
 
   assert {
+    condition = (
+      aws_lambda_function_event_invoke_config.freshness.maximum_retry_attempts == 0
+      && aws_lambda_function_event_invoke_config.daily_report.maximum_retry_attempts == 0
+      && aws_lambda_function_event_invoke_config.freshness.maximum_event_age_in_seconds < 300
+    )
+    error_message = "no asynchronous retries, and a queued freshness check dies before the next one"
+  }
+
+  assert {
     condition     = aws_cloudwatch_metric_alarm.data_stale.treat_missing_data == "breaching"
     error_message = "a freshness Lambda that stops publishing must fire the alarm"
   }

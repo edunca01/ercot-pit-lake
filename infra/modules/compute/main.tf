@@ -149,6 +149,16 @@ resource "aws_lambda_function" "ingest" {
   depends_on = [aws_iam_role_policy.lambda]
 }
 
+# The schedules invoke asynchronously. Lambda's defaults (two retries of a failed run, and
+# throttled events kept for six hours) turn a slow ERCOT into a backlog of stale runs that
+# holds every concurrent slot. The next scheduled run is the retry, so failed and stale
+# events are dropped instead.
+resource "aws_lambda_function_event_invoke_config" "ingest" {
+  function_name                = aws_lambda_function.ingest.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 120
+}
+
 # -- Backfill: invoked by hand with a posting window and a source ----------------------------
 
 resource "aws_cloudwatch_log_group" "backfill" {
@@ -249,6 +259,12 @@ resource "aws_lambda_function" "compact" {
   }
 
   depends_on = [aws_iam_role_policy.compact]
+}
+
+resource "aws_lambda_function_event_invoke_config" "compact" {
+  function_name                = aws_lambda_function.compact.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 600 # the next hourly run merges whatever this one missed
 }
 
 # -- Schedules: one per product (cron from config.yaml, Central time) and hourly compaction --
