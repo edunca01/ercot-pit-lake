@@ -6,6 +6,7 @@ leaves the watermark alone.
     uv run ingest --product np6-905-cd              # live, from the watermark (needs ERCOT_*)
     uv run ingest --product all --offline           # the committed samples, no network
     uv run backfill --product np4-190-cd --from 2026-09-01 --to 2026-09-02 --source bundles
+    uv run compact [--product np6-905-cd]           # merge old small curated files
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from ercot_lake.timeutil import CT, now_utc, utc_to_ct
 from ingest.catalog import publish_catalog
+from ingest.compact import compact_product
 from ingest.config import REPO_ROOT, Product, Settings, load_credentials, settings
 from ingest.ercot_api import ErcotClient
 from ingest.lake import Lake
@@ -180,6 +182,21 @@ def _main(argv: list[str] | None, *, backfill: bool) -> int:
     for summary in summaries:
         print(json.dumps(summary.as_dict()))
     return 1 if any(s.status == "error" for s in summaries) else 0
+
+
+def main_compact(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(prog="compact", description="Merge old small curated files.")
+    ap.add_argument("--product", default="all", help="product key from config.yaml, or 'all'")
+    ap.add_argument("--log-level", default="INFO")
+    args = ap.parse_args(argv)
+    configure_logging(args.log_level)
+    cfg = settings()
+    lake = Lake(cfg.lake)
+    products = list(cfg.products.values()) if args.product == "all" else [cfg.product(args.product)]
+    for p in products:
+        summary = compact_product(p, lake, now=now_utc())
+        print(json.dumps(summary.as_dict()))
+    return 0
 
 
 def main_ingest(argv: list[str] | None = None) -> int:

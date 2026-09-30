@@ -242,3 +242,19 @@ def test_a_second_pass_posting_on_the_fall_back_night_keeps_its_own_keys(env: En
     t = pq.read_table(Path(lake.root) / parts[1])
     assert t.column("posted_at").to_pylist() == [second]
     assert t.column("dst_flag").to_pylist() == [True]
+
+
+def test_a_posting_that_repeats_a_business_key_fails_loudly(env: Env) -> None:
+    """Two prices for one interval and point in one posting: which one was "known" is
+    undefined, so the run fails (after raw has landed) instead of guessing."""
+    _, lake, _ = env
+    rows = "09/04/2026,11,4,HB_NORTH,HU,30.0,N\n09/04/2026,11,4,HB_NORTH,HU,31.0,N\n"
+    with pytest.raises(SchemaDriftError, match="1 business keys repeat"):
+        run(env, [doc(T0, rows)], Window(T0 - timedelta(hours=1), T0))
+    assert lake.list_keys("raw/np6-905-cd")
+    assert lake.list_keys("curated") == []
+
+
+def test_the_same_point_under_two_types_is_not_a_repeat(env: Env) -> None:
+    rows = "09/04/2026,11,4,LZ_HOUSTON,LZ,30.0,N\n09/04/2026,11,4,LZ_HOUSTON,LZEW,30.5,N\n"
+    assert run(env, [doc(T0, rows)], Window(T0 - timedelta(hours=1), T0)).rows_written == 2  # type: ignore[attr-defined]
