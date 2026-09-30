@@ -22,14 +22,14 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.compute as pc
 
-from ercot_lake.contract import SCHEMA_VERSION, curated_key, manifest_key, raw_key
+from ercot_lake.contract import BUSINESS_KEY, SCHEMA_VERSION, curated_key, manifest_key, raw_key
 from ercot_lake.timeutil import CT, delivery_date_ct, now_utc, utc_to_ct
 from ingest.archive import iter_csv_members, posted_local_from_name
 from ingest.config import Product
 from ingest.ercot_api import DocumentNotReadyError, ErcotClient, resolve_repeated_hour
 from ingest.lake import Lake
 from ingest.state import StateStore, Watermark
-from ingest.transforms import TransformSpec, transform
+from ingest.transforms import SchemaDriftError, TransformSpec, transform
 
 log = logging.getLogger(__name__)
 
@@ -217,6 +217,19 @@ def _split_by_delivery_date(table: pa.Table) -> dict[str, pa.Table]:
     return {d: table.filter(pc.equal(dates, pa.scalar(d))) for d in sorted(set(labels))}
 
 
+def _check_unique_keys(product: Product, table: pa.Table, name: str) -> None:
+    """One posting, one row per business key. Two rows for one key at the same posting time
+    leave "what was known" undefined, so such a posting fails like any other format change
+    (its raw copy has already landed and can be replayed once understood)."""
+    key = list(BUSINESS_KEY[product.table])
+    counts = table.group_by(key, use_threads=False).aggregate([([], "count_all")])
+    dupes = counts.filter(pc.greater(counts.column("count_all"), pa.scalar(1)))
+    if dupes.num_rows:
+        example = dupes.drop_columns(["count_all"]).slice(0, 1).to_pylist()[0]
+        msg = f"{product.key} {name}: {dupes.num_rows} business keys repeat, e.g. {example}"
+        raise SchemaDriftError(msg)
+
+
 @dataclass(frozen=True)
 class DocResult:
     rows: int
@@ -245,6 +258,7 @@ def ingest_doc(
         table = transform(
             spec, "archive", member.text, posted_at=posted_at, ingested_at=ingested_at
         )
+        _check_unique_keys(product, table, member.name)
         if delivery_range is not None:
             table = _filter_delivery_range(table, delivery_range)
         if table.num_rows == 0:

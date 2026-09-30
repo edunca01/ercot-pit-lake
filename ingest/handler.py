@@ -1,5 +1,5 @@
-"""Lambda entry points. The container image's CMD selects one: ``ingest.handler.ingest`` or
-``ingest.handler.backfill``.
+"""Lambda entry points. The container image's CMD selects one: ``ingest.handler.ingest``,
+``ingest.handler.backfill`` or ``ingest.handler.compact``.
 
 Event: ``{"product": "np6-905-cd" | "all", "from"?: ISO, "to"?: ISO, "source"?: "archive" |
 "bundles" | "hist", "delivery_from"?: date, "delivery_to"?: date, "log_level"?: "INFO"}``.
@@ -15,8 +15,10 @@ from datetime import date
 from typing import Any
 
 from ercot_lake.timeutil import now_utc
+from ingest import compact as _compact
 from ingest.cli import SOURCES, configure_logging, parse_when, run_products
 from ingest.config import settings
+from ingest.lake import Lake
 from ingest.run import Window
 
 log = logging.getLogger(__name__)
@@ -67,3 +69,10 @@ def ingest(event: dict[str, Any], context: object = None) -> dict[str, Any]:
 
 def backfill(event: dict[str, Any], context: object = None) -> dict[str, Any]:
     return _run(event, backfill=True)
+
+
+def compact(event: dict[str, Any], context: object = None) -> dict[str, Any]:
+    """Merge old small curated files, every configured product (hourly schedule)."""
+    configure_logging(str(event.get("log_level", "INFO")))
+    cfg = settings()
+    return {"products": [s.as_dict() for s in _compact.compact(cfg, Lake(cfg.lake))]}

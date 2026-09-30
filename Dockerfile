@@ -1,6 +1,7 @@
 # Lambda container image for the ingest pipeline. One image, several handlers selected by CMD:
 #   ingest.handler.ingest      (default)   scheduled runs, payload {"product": "..."}
 #   ingest.handler.backfill                explicit window, payload adds "from"/"to"
+#   ingest.handler.compact                 hourly, merges small curated files
 # Built for arm64 (Graviton), single-manifest so Lambda accepts it.
 FROM public.ecr.aws/lambda/python:3.12
 

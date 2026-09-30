@@ -6,7 +6,7 @@ Keys come from ``ercot_lake.contract``, so what this writes is exactly what read
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -14,6 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow import fs as pafs
 
+from ercot_lake.contract import CURATED_PREFIX
 from ingest.config import LakeConfig
 
 
@@ -68,8 +69,30 @@ class Lake:
         result: dict[str, Any] = json.loads(self.read_bytes(key))
         return result
 
+    def read_table(self, key: str) -> pa.Table:
+        return pq.read_table(self._path(key), filesystem=self._fs)
+
+    def delete(self, key: str) -> None:
+        """Remove one curated file. Raw postings and manifests are never deleted, so the check
+        is here, not left to callers."""
+        if not key.startswith(f"{CURATED_PREFIX}/"):
+            msg = f"refusing to delete outside {CURATED_PREFIX}/: {key}"
+            raise PermissionError(msg)
+        self._fs.delete_file(self._path(key))
+
     def exists(self, key: str) -> bool:
         return self._fs.get_file_info(self._path(key)).type != pafs.FileType.NotFound
+
+    def list_files(self, prefix: str) -> list[tuple[str, datetime]]:
+        """(key, last modified in UTC) for every object under ``prefix``, sorted by key."""
+        sel = pafs.FileSelector(self._path(prefix), recursive=True, allow_not_found=True)
+        base = self._base + "/"
+        out = []
+        for fi in self._fs.get_file_info(sel):
+            if fi.type == pafs.FileType.File and fi.mtime is not None:
+                mtime = fi.mtime if fi.mtime.tzinfo else fi.mtime.replace(tzinfo=UTC)
+                out.append((fi.path.removeprefix(base), mtime.astimezone(UTC)))
+        return sorted(out)
 
     def list_keys(self, prefix: str) -> list[str]:
         sel = pafs.FileSelector(self._path(prefix), recursive=True, allow_not_found=True)
