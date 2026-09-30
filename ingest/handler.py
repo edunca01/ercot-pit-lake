@@ -74,11 +74,23 @@ def backfill(event: dict[str, Any], context: object = None) -> dict[str, Any]:
     return _run(event, backfill=True)
 
 
+# A partition merge takes seconds, a large backlog day under a minute: stop starting new ones
+# with this much time left, rather than be killed mid-merge by the Lambda timeout.
+_COMPACT_MARGIN_MS = 90_000
+
+
 def compact(event: dict[str, Any], context: object = None) -> dict[str, Any]:
-    """Merge old small curated files, every configured product (hourly schedule)."""
+    """Merge old small curated files, every configured product (hourly schedule). A backlog
+    larger than one run is continued by the next."""
     configure_logging(str(event.get("log_level", "INFO")))
     cfg = settings()
-    return {"products": [s.as_dict() for s in _compact.compact(cfg, Lake(cfg.lake))]}
+    remaining = getattr(context, "get_remaining_time_in_millis", None)
+
+    def stop() -> bool:
+        return remaining is not None and remaining() < _COMPACT_MARGIN_MS
+
+    summaries = _compact.compact(cfg, Lake(cfg.lake), stop=stop)
+    return {"products": [s.as_dict() for s in summaries]}
 
 
 def freshness(event: dict[str, Any], context: object = None) -> dict[str, Any]:

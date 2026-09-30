@@ -312,3 +312,54 @@ def one_merged(lake: Lake) -> str:
     (key,) = lake.list_keys(f"curated/{PRODUCT}/")
     assert "/merged-" in key
     return key
+
+
+def test_a_run_out_of_time_stops_between_partitions(
+    lake: Lake, cfg: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Two partitions (interval 100 is the next delivery day); time runs out after the first.
+    old = NOW - timedelta(hours=3)
+    for hour in (1, 2):
+        write_posting(
+            lake, DAY0 + timedelta(hours=hour), [(4, 0, 30.0), (100, 0, 31.0)], written=old
+        )
+    checks = iter([False, True])
+    s = compact_product(cfg.product(PRODUCT), lake, now=NOW, stop=lambda: next(checks))
+    assert (s.partitions_merged, s.stopped) == (1, True)
+    assert sum("merged-" in f for f in files(lake)) == 1
+
+    # The next run finishes the rest.
+    s = compact_product(cfg.product(PRODUCT), lake, now=NOW, stop=lambda: False)
+    assert (s.partitions_merged, s.stopped) == (1, False)
+
+    # A product that stops ends the run: the products after it are not started.
+    write_posting(lake, DAY0 + timedelta(hours=3), [(4, 0, 32.0)], written=old)
+    for key in lake.list_keys(f"curated/{PRODUCT}/"):
+        age(lake, key, old)
+    out = compact(cfg, lake, now=NOW, stop=lambda: True)
+    assert (out[-1].product, out[-1].stopped) == (PRODUCT, True)
+    assert len(out) == list(cfg.products).index(PRODUCT) + 1 < len(cfg.products)
+
+
+class _Context:
+    def __init__(self, remaining_ms: list[int]) -> None:
+        self._left = iter(remaining_ms)
+
+    def get_remaining_time_in_millis(self) -> int:
+        return next(self._left)
+
+
+def test_the_handler_stops_with_time_to_spare(
+    lake: Lake, cfg: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old = NOW - timedelta(hours=3)
+    for hour in (1, 2):
+        write_posting(
+            lake, DAY0 + timedelta(hours=hour), [(4, 0, 30.0), (100, 0, 31.0)], written=old
+        )
+    monkeypatch.setattr(
+        handler, "settings", lambda: cfg.model_copy(update={"lake": LakeConfig(root=lake.root)})
+    )
+    out = handler.compact({}, _Context([500_000, 60_000]))
+    last = out["products"][-1]
+    assert (last["product"], last["partitions_merged"], last["stopped"]) == (PRODUCT, 1, True)
