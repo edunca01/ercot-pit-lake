@@ -1,5 +1,5 @@
 """Lambda entry points. The container image's CMD selects one: ``ingest.handler.ingest``,
-``ingest.handler.backfill`` or ``ingest.handler.compact``.
+``ingest.handler.backfill``, ``ingest.handler.compact`` or ``ingest.handler.freshness``.
 
 Event: ``{"product": "np6-905-cd" | "all", "from"?: ISO, "to"?: ISO, "source"?: "archive" |
 "bundles" | "hist", "delivery_from"?: date, "delivery_to"?: date, "log_level"?: "INFO"}``.
@@ -16,6 +16,7 @@ from typing import Any
 
 from ercot_lake.timeutil import now_utc
 from ingest import compact as _compact
+from ingest import freshness as _freshness
 from ingest.cli import SOURCES, configure_logging, parse_when, run_products
 from ingest.config import settings
 from ingest.lake import Lake
@@ -76,3 +77,14 @@ def compact(event: dict[str, Any], context: object = None) -> dict[str, Any]:
     configure_logging(str(event.get("log_level", "INFO")))
     cfg = settings()
     return {"products": [s.as_dict() for s in _compact.compact(cfg, Lake(cfg.lake))]}
+
+
+def freshness(event: dict[str, Any], context: object = None) -> dict[str, Any]:
+    """Publish StaleProducts and FreshnessMinutes for every product and extra watch."""
+    import boto3  # noqa: PLC0415  (only the deployed path needs the AWS SDK)
+
+    configure_logging(str(event.get("log_level", "INFO")))
+    cfg = settings()
+    now = now_utc()
+    results = _freshness.publish(cfg, Lake(cfg.lake), boto3.client("cloudwatch"), now=now)
+    return {"results": [f.as_dict(now) for f in results]}

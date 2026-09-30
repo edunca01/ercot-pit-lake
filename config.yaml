@@ -30,6 +30,15 @@ state:
   local_dir: ./data/state
   dynamodb_table: ercot-ingest-state
 
+# Heartbeats of other systems that freshness watches alongside the products. Each is a JSON
+# object with an ISO timestamp field; stale or missing, it counts into StaleProducts.
+#   - name: my-consumer            # metric dimension and log label
+#     key: status/my-consumer.json # relative to the lake root, or to `bucket`
+#     field: last_run              # ISO 8601 timestamp
+#     stale_after_min: 30
+#     bucket: other-bucket         # optional
+extra_watches: []
+
 lake:
   # Overridden by LAKE_ROOT. A local directory offline, s3://<bucket> when deployed.
   root: ./data
