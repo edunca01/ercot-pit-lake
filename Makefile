@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup lint fmt typecheck test check ingest compact samples archives docker-build clean
+.PHONY: help setup lint fmt typecheck test check ingest compact verify samples archives check-endpoints docker-build clean
 
 help: ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -30,11 +30,17 @@ ingest: ## ingest into $$LAKE_ROOT (PRODUCT=key|all, default all; OFFLINE=1 uses
 compact: ## merge curated files older than an hour, per partition (PRODUCT=key|all)
 	uv run compact --product $(or $(PRODUCT),all)
 
+verify: ## check $$LAKE_ROOT against the contract with DuckDB (PRODUCT=key|all)
+	uv run python -m scripts.verify_lake --product $(or $(PRODUCT),all)
+
 samples: ## trimmed API sample per product -> samples/api/ (needs ERCOT_*; PRODUCTS=a,b optional)
 	uv run python -m scripts.fetch_samples $(if $(PRODUCTS),--products $(PRODUCTS),)
 
 archives: ## trimmed latest posting per product -> samples/archive/ (needs ERCOT_*; PRODUCTS=a,b)
 	uv run python -m scripts.fetch_archives $(if $(PRODUCTS),--products $(PRODUCTS),)
+
+check-endpoints: ## probe every product's endpoint and archives (needs ERCOT_*; PRODUCTS=a,b)
+	uv run python -m scripts.check_endpoints $(if $(PRODUCTS),--products $(PRODUCTS),)
 
 docker-build: ## build the Lambda image (arm64, single manifest)
 	docker build --platform linux/arm64 --provenance=false --sbom=false -t ercot-ingest:local .

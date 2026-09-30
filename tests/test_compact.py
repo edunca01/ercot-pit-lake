@@ -276,3 +276,39 @@ def test_the_cli(
     )
     assert cli.main_compact(["--product", PRODUCT]) == 0
     assert '"partitions_merged": 1' in capsys.readouterr().out
+
+
+def test_a_file_with_loose_nullable_flags_is_merged(lake: Lake, cfg: Settings) -> None:
+    """Same columns, same types, no nulls: only the nullable flag differs, which some writers
+    set loosely. It is the same data, so it merges, under the contract's exact schema."""
+    old = NOW - timedelta(hours=3)
+    (key,) = write_posting(lake, DAY0 + timedelta(hours=1), [(4, 0, 30.0)], written=old)
+    t = lake.read_table(key)
+    loose = pa.schema([f.with_nullable(True) for f in t.schema])
+    lake.write_table(key, t.cast(loose))
+    age(lake, key, old)
+    write_posting(lake, DAY0 + timedelta(hours=2), [(4, 0, 35.0)], written=old)
+    s = compact_product(cfg.product(PRODUCT), lake, now=NOW)
+    assert (s.partitions_merged, s.rows) == (1, 2)
+    assert lake.read_table(one_merged(lake)).schema == SCHEMAS["spp"]
+
+
+def test_a_null_in_a_required_column_is_not_merged(lake: Lake, cfg: Settings) -> None:
+    old = NOW - timedelta(hours=3)
+    (key,) = write_posting(lake, DAY0 + timedelta(hours=1), [(4, 0, 30.0)], written=old)
+    t = lake.read_table(key)
+    i = t.schema.get_field_index("price_mwh")
+    loose = pa.schema([f.with_nullable(True) for f in t.schema])
+    lake.write_table(
+        key, t.cast(loose).set_column(i, loose.field(i), pa.array([None], pa.float64()))
+    )
+    age(lake, key, old)
+    write_posting(lake, DAY0 + timedelta(hours=2), [(4, 0, 35.0)], written=old)
+    s = compact_product(cfg.product(PRODUCT), lake, now=NOW)
+    assert (s.partitions_merged, s.skipped) == (0, ["2026-09-03"])
+
+
+def one_merged(lake: Lake) -> str:
+    (key,) = lake.list_keys(f"curated/{PRODUCT}/")
+    assert "/merged-" in key
+    return key
