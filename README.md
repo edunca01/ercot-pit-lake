@@ -8,8 +8,8 @@ posting time and ours. You can ask the lake **what was known at any moment**, co
 and reposts included, which is the only honest input for backtesting a forecaster or a trading
 strategy.
 
-> **Status: early development.** The lake contract and the `ercot-lake` reader come first, then
-> ingestion, then the Terraform to deploy it.
+> **Status: early development.** The lake contract, the `ercot-lake` reader, ingestion and the
+> Terraform modules are in place; the first deployment is next.
 
 ## Stack
 
@@ -51,7 +51,14 @@ make check        # lint, mypy strict, tests; offline, no credentials
 make ingest       # live, from the watermark (needs ERCOT_* credentials, see .env.example)
 uv run backfill --product np4-190-cd --from 2026-09-01 --to 2026-09-02 --source bundles
 make docker-build # the Lambda image
+make tf-test      # Terraform validate + tests against a mocked AWS provider
 ```
+
+## Deploy
+
+[infra/](infra/README.md) holds one Terraform module per layer and an example root that deploys
+the whole stack into your account. Schedules come from `config.yaml`, so adding a product
+never touches Terraform.
 
 ## Contributions
 

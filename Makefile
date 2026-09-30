@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup lint fmt typecheck test check ingest compact verify samples archives check-endpoints docker-build clean
+.PHONY: help setup lint fmt typecheck test check ingest compact verify samples archives check-endpoints docker-build tf-fmt tf-validate tf-test clean
 
 help: ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -44,6 +44,16 @@ check-endpoints: ## probe every product's endpoint and archives (needs ERCOT_*; 
 
 docker-build: ## build the Lambda image (arm64, single manifest)
 	docker build --platform linux/arm64 --provenance=false --sbom=false -t ercot-ingest:local .
+
+tf-fmt: ## terraform fmt check over infra/ (TF_FIX=1 rewrites)
+	terraform fmt -recursive $(if $(TF_FIX),,-check -diff) infra
+
+tf-validate: ## validate the example root and every module it uses (no backend, no credentials)
+	terraform -chdir=infra/examples init -backend=false -input=false
+	terraform -chdir=infra/examples validate
+
+tf-test: tf-validate ## terraform test against a mocked AWS provider
+	terraform -chdir=infra/examples test
 
 clean: ## remove caches
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage

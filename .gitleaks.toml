@@ -10,6 +10,9 @@ secretGroup = 1
 keywords = []
 [rules.allowlist]
 paths = ['''uv\.lock''', '''samples/''']
+# AWS's documented example account, used by the Terraform test mocks. Exact match only.
+regexTarget = "secret"
+regexes = ['''^123456789012$''']
 
 [[rules]]
 id = "slack-ids"
