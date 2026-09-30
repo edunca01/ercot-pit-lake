@@ -164,12 +164,23 @@ class ExtraWatch(_Strict):
     bucket: str | None = None  # another bucket this deployment may read
 
 
+class ReportSection(_Strict):
+    """A section of the daily report that another system fills: a JSON object with optional
+    string lists ``problems`` (join "needs attention"), ``kpis`` (Slack and email) and
+    ``lines`` (email only). A missing object skips the section."""
+
+    title: str
+    key: str  # object key, relative to the lake root unless `bucket` is set
+    bucket: str | None = None
+
+
 class Settings(_Strict):
     ercot: ErcotConfig
     lake: LakeConfig
     state: StateConfig
     products: dict[str, Product]
     extra_watches: list[ExtraWatch] = []
+    report_sections: list[ReportSection] = []
 
     @model_validator(mode="after")
     def _watch_names_are_unique(self) -> Settings:
@@ -226,6 +237,29 @@ def load_settings(path: Path | None = None) -> Settings:
         lake=LakeConfig(**lake_raw),
         state=StateConfig(**state_raw),
         **raw,
+    )
+
+
+class ReportTargets(_Strict):
+    """Where the deployed daily report reads from and sends to (set on the Lambda by Terraform).
+    Both topics are optional: a deployment may have no Slack, no email, or neither."""
+
+    ingest_function: str
+    ingest_log_group: str
+    alarm_prefix: str = "ercot"
+    email_topic: str | None = None
+    slack_topic: str | None = None
+
+
+def load_report_targets() -> ReportTargets:
+    """``INGEST_FUNCTION_NAME``, ``INGEST_LOG_GROUP``, ``ALARM_PREFIX``, ``ALERTS_TOPIC_ARN`` and
+    ``ACTIONS_TOPIC_ARN``; an empty topic variable means that channel is not deployed."""
+    return ReportTargets(
+        ingest_function=os.environ["INGEST_FUNCTION_NAME"],
+        ingest_log_group=os.environ["INGEST_LOG_GROUP"],
+        alarm_prefix=os.environ.get("ALARM_PREFIX") or "ercot",
+        email_topic=os.environ.get("ALERTS_TOPIC_ARN") or None,
+        slack_topic=os.environ.get("ACTIONS_TOPIC_ARN") or None,
     )
 
 

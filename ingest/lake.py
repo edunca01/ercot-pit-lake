@@ -72,6 +72,12 @@ class Lake:
     def read_table(self, key: str) -> pa.Table:
         return pq.read_table(self._path(key), filesystem=self._fs)
 
+    def read_column(self, key: str, column: str) -> list[Any]:
+        """One column of a Parquet object as Python values (aware UTC for timestamps)."""
+        table = pq.read_table(self._path(key), columns=[column], filesystem=self._fs)
+        values: list[Any] = table.column(column).to_pylist()
+        return values
+
     def delete(self, key: str) -> None:
         """Remove one curated file. Raw postings and manifests are never deleted, so the check
         is here, not left to callers."""

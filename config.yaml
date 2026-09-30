@@ -39,6 +39,13 @@ state:
 #     bucket: other-bucket         # optional
 extra_watches: []
 
+# Sections of the daily report that other systems fill: a JSON object with optional string lists
+# `problems` (join "needs attention"), `kpis` (Slack and email) and `lines` (email only).
+#   - title: My consumer           # section heading
+#     key: status/my-report.json   # relative to the lake root, or to `bucket`
+#     bucket: other-bucket         # optional
+report_sections: []
+
 lake:
   # Overridden by LAKE_ROOT. A local directory offline, s3://<bucket> when deployed.
   root: ./data
