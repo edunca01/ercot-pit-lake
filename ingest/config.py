@@ -152,11 +152,33 @@ class Product(_Strict):
         return self
 
 
+class ExtraWatch(_Strict):
+    """Something outside this pipeline whose heartbeat freshness also watches: a JSON object
+    holding an ISO timestamp. Stale or missing, it counts into StaleProducts like a product.
+    The pipeline knows only the object's location, never what system writes it."""
+
+    name: str = Field(pattern=r"^[a-z0-9][a-z0-9-]*$")  # the metric dimension and log label
+    key: str  # object key, relative to the lake root unless `bucket` is set
+    field: str  # the JSON field with an ISO 8601 timestamp (an offset, or UTC is assumed)
+    stale_after_min: int = Field(gt=0)
+    bucket: str | None = None  # another bucket this deployment may read
+
+
 class Settings(_Strict):
     ercot: ErcotConfig
     lake: LakeConfig
     state: StateConfig
     products: dict[str, Product]
+    extra_watches: list[ExtraWatch] = []
+
+    @model_validator(mode="after")
+    def _watch_names_are_unique(self) -> Settings:
+        names = [w.name for w in self.extra_watches]
+        dupes = sorted({n for n in names if names.count(n) > 1})
+        if dupes:
+            msg = f"extra_watches names repeat: {dupes}"
+            raise ValueError(msg)
+        return self
 
     def product(self, key: str) -> Product:
         try:

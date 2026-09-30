@@ -2,6 +2,7 @@
 #   ingest.handler.ingest      (default)   scheduled runs, payload {"product": "..."}
 #   ingest.handler.backfill                explicit window, payload adds "from"/"to"
 #   ingest.handler.compact                 hourly, merges small curated files
+#   ingest.handler.freshness               every 5 min, publishes the freshness metrics
 # Built for arm64 (Graviton), single-manifest so Lambda accepts it.
 FROM public.ecr.aws/lambda/python:3.12
 
