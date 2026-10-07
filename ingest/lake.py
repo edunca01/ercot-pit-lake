@@ -66,7 +66,13 @@ class Lake:
             return data
 
     def read_json(self, key: str) -> dict[str, Any]:
-        result: dict[str, Any] = json.loads(self.read_bytes(key))
+        """A small JSON object. pyarrow reads S3 objects in byte ranges, so a manifest replaced
+        between two ranges comes back as the start of one version and the end of the next, which
+        does not parse. A second read sees one whole version."""
+        try:
+            result: dict[str, Any] = json.loads(self.read_bytes(key))
+        except ValueError:  # JSONDecodeError and UnicodeDecodeError are both ValueErrors
+            result = json.loads(self.read_bytes(key))
         return result
 
     def read_table(self, key: str) -> pa.Table:
