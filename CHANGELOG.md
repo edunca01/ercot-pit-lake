@@ -5,6 +5,11 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: SemVer on th
 
 ## [Unreleased]
 
+### Changed
+- The seven-day load forecast, wind and solar reports (`np3-565-cd`, `np4-732-cd`,
+  `np4-737-cd`) now hold every hourly posting from 2025-12-01, backfilled from ERCOT's archive.
+  Their catalog `collected_from` moves from 2026-09-17 to 2025-12-01T06:00:00Z.
+
 ### Fixed
 - The solar production report (`np4-737-cd`) labels the spring-forward hour (01:00 CST to
   03:00 CDT) hour ending 03:00, where the other hourly reports call it 02:00. Ingestion
