@@ -121,6 +121,29 @@ def test_spring_forward_day_has_23_hours() -> None:
     assert he4 == datetime(2026, 3, 8, 8, 0, tzinfo=UTC)
 
 
+def test_spring_forward_hour_ending_takes_either_label() -> None:
+    # The hour from 01:00 CST to 03:00 CDT is "hour ending 02:00" in most reports and "hour
+    # ending 03:00" (named by its end) in the solar report: one interval either way.
+    he2 = tu.hour_ending_start_utc(SPRING_FORWARD, 2, 60, repeated_hour=False)
+    he3 = tu.hour_ending_start_utc(SPRING_FORWARD, 3, 60, repeated_hour=False)
+    he4 = tu.hour_ending_start_utc(SPRING_FORWARD, 4, 60, repeated_hour=False)
+    assert he2 == he3 == datetime(2026, 3, 8, 7, 0, tzinfo=UTC)
+    assert he4 == datetime(2026, 3, 8, 8, 0, tzinfo=UTC)
+
+
+@pytest.mark.parametrize("day", [ORDINARY, FALL_BACK])
+def test_hour_ending_is_unchanged_on_other_days(day: date) -> None:
+    for hour in range(1, 25):
+        assert tu.hour_ending_start_utc(
+            day, hour, 60, repeated_hour=False
+        ) == tu.interval_start_utc(day, hour, 1, 60, repeated_hour=False)
+
+
+def test_spring_forward_hour_ending_03_is_never_the_repeated_hour() -> None:
+    with pytest.raises(ValueError, match="not ambiguous"):
+        tu.hour_ending_start_utc(SPRING_FORWARD, 3, 60, repeated_hour=True)
+
+
 @pytest.mark.parametrize("minutes", [60, 15])
 def test_the_skipped_hour_is_refused(minutes: int) -> None:
     # Without the check HE 03:00 would land on 08:00Z, colliding with HE 04:00.

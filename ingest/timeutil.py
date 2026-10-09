@@ -9,6 +9,12 @@ The flag (``DSTFlag`` / ``RepeatedHourFlag`` = Y) marks the *second* occurrence 
 hour, i.e. ``fold=1``. A local time that cannot exist (the spring-forward gap) or a flag on an
 hour that is not repeated raises: either would silently give two intervals the same UTC start,
 and one of them would be lost when readers dedupe on the business key.
+
+The spring-forward day has one hour between 01:00 CST and 03:00 CDT, and ERCOT's hourly reports
+do not agree on its label. Most name it by its start, hour ending 02:00, and skip 03:00; some
+(the solar production report) name it by its end, hour ending 03:00, and skip 02:00.
+:func:`hour_ending_start_utc` reads both as the same interval. A posting that used both labels
+would repeat a business key, which ingestion refuses.
 """
 
 from __future__ import annotations
@@ -25,7 +31,7 @@ _SCED_FORMATS = ("%m/%d/%Y %H:%M:%S", "%Y-%m-%dT%H:%M:%S")
 def local_to_utc(local: datetime, *, repeated_hour: bool) -> datetime:
     """A naive CT wall-clock time from ERCOT -> aware UTC, refusing times that are not real."""
     utc = ct_to_utc(local, repeated_hour=repeated_hour)
-    if utc_to_ct(utc).replace(tzinfo=None) != local:
+    if not _exists(local):
         msg = f"{local:%Y-%m-%d %H:%M} does not exist in Central time (spring-forward gap)"
         raise ValueError(msg)
     if repeated_hour and ct_to_utc(local) == utc:
@@ -101,6 +107,21 @@ def interval_start_utc(
         hours=hour - 1, minutes=(interval - 1) * interval_minutes
     )
     return local_to_utc(local, repeated_hour=repeated_hour)
+
+
+def hour_ending_start_utc(
+    delivery_date: date, hour: int, interval_minutes: int, *, repeated_hour: bool
+) -> datetime:
+    """Start of the hour a report labels ``hour`` (1..24 = hour ending), as aware UTC. Hour
+    ending 03:00 on the spring-forward day is the hour that ends at 03:00 CDT, the one most
+    reports call hour ending 02:00 (see the module docstring)."""
+    if hour == 3 and not _exists(datetime.combine(delivery_date, time(2))):
+        hour = 2
+    return interval_start_utc(delivery_date, hour, 1, interval_minutes, repeated_hour=repeated_hour)
+
+
+def _exists(local: datetime) -> bool:
+    return utc_to_ct(ct_to_utc(local)).replace(tzinfo=None) == local
 
 
 def sced_interval_start_utc(text: str, interval_minutes: int, *, repeated_hour: bool) -> datetime:

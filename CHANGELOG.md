@@ -5,6 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: SemVer on th
 
 ## [Unreleased]
 
+### Fixed
+- The solar production report (`np4-737-cd`) labels the spring-forward hour (01:00 CST to
+  03:00 CDT) hour ending 03:00, where the other hourly reports call it 02:00. Ingestion
+  refused those postings as naming a time that does not exist; both labels now give the same
+  `interval_start`. A posting that used both would repeat a business key and is still refused.
+
 ## [1.0.0] - 2026-09-30
 
 The first public release: the lake contract 1.0.0 (`docs/CONTRACT.md`) and the `ercot-lake`

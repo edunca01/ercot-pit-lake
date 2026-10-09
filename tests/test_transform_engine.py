@@ -10,6 +10,7 @@ import pytest
 
 from ercot_lake.contract import SCHEMA_VERSION, SCHEMAS
 from ingest.config import Product
+from ingest.run import _check_unique_keys
 from ingest.transforms import SchemaDriftError, TransformSpec, transform
 
 POSTED = datetime(2026, 11, 1, 12, 0, tzinfo=UTC)
@@ -250,3 +251,42 @@ def test_series_melts_keeps_the_in_use_model_and_skips_empty_cells() -> None:
         (5, "load_fcst:SystemTotal", 50000.0),
         (6, "load_fcst:SystemTotal", 51000.0),
     ]
+
+
+SOLAR = product(
+    "series",
+    60,
+    {
+        "time": "hour_ending",
+        "columns": {
+            "delivery_date": ["deliveryDate", "DELIVERY_DATE"],
+            "hour_ending": ["hourEnding", "HOUR_ENDING"],
+            "gen": ["genSystemWide", "SYSTEM_WIDE_GEN"],
+            "dst_flag": ["DSTFlag", "DSTFlag"],
+        },
+        "series": {"gen": "solar:GEN"},
+    },
+)
+
+
+def test_spring_forward_day_labelled_by_hour_end() -> None:
+    # As ERCOT's solar report labels 2026-03-08: 01, 03, 04 (no 02).
+    csv = (
+        "DELIVERY_DATE,HOUR_ENDING,SYSTEM_WIDE_GEN,DSTFlag\n"
+        "03/08/2026,01,0,N\n03/08/2026,03,0,N\n03/08/2026,04,0,N\n"
+    )
+    starts = [r["interval_start"] for r in run(SOLAR, "archive", csv)]
+    assert [s.hour for s in starts] == [6, 7, 8]
+
+
+def test_a_posting_with_both_spring_forward_labels_is_refused() -> None:
+    # 02 and 03 on the spring-forward day name the same hour: ingestion refuses the posting
+    # rather than keep one value and drop the other.
+    csv = (
+        "DELIVERY_DATE,HOUR_ENDING,SYSTEM_WIDE_GEN,DSTFlag\n03/08/2026,02,1,N\n03/08/2026,03,2,N\n"
+    )
+    table = transform(
+        TransformSpec.for_product(SOLAR), "archive", csv, posted_at=POSTED, ingested_at=INGESTED
+    )
+    with pytest.raises(SchemaDriftError, match="1 business keys repeat"):
+        _check_unique_keys(SOLAR, table, "doc")
