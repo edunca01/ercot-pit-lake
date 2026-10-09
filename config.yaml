@@ -157,7 +157,7 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 6
     stale_after_min: 240   # hourly; normal peak ~65 min
-    collected_from: "2026-09-17T11:00:00Z"
+    collected_from: "2025-12-01T06:00:00Z"   # archive backfill from 00:00 CT
     transform:
       time: hour_ending
       columns:                # canonical: [API field, archive CSV header]
@@ -200,7 +200,7 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 6
     stale_after_min: 240   # as np3-565-cd
-    collected_from: "2026-09-17T11:00:00Z"
+    collected_from: "2025-12-01T06:00:00Z"   # archive backfill from 00:00 CT
     transform:
       time: hour_ending
       columns:                # canonical: [API field, archive CSV header]
@@ -256,7 +256,7 @@ products:
     date_params: [deliveryDateFrom, deliveryDateTo]
     initial_lookback_hours: 6
     stale_after_min: 240   # as np3-565-cd
-    collected_from: "2026-09-17T11:00:00Z"
+    collected_from: "2025-12-01T06:00:00Z"   # archive backfill from 00:00 CT
     transform:
       time: hour_ending
       columns:                # canonical: [API field, archive CSV header]

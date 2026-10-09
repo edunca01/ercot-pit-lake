@@ -20,6 +20,7 @@ import pyarrow as pa
 from ercot_lake.contract import AS_TYPES, SCHEMA_VERSION, SCHEMAS, Table
 from ingest.config import Product, TimeStyle
 from ingest.timeutil import (
+    hour_ending_start_utc,
     interval_start_utc,
     parse_delivery_date,
     parse_hour_ending,
@@ -122,9 +123,9 @@ def _interval_start(spec: TransformSpec, rec: Mapping[str, Any], dst: bool) -> d
         )
     ddate = parse_delivery_date(rec["delivery_date"])
     if spec.time == "hour_ending":
-        hour, interval = parse_hour_ending(rec["hour_ending"]), 1
-    else:
-        hour, interval = _to_int(rec["delivery_hour"]), _to_int(rec["delivery_interval"])
+        hour = parse_hour_ending(rec["hour_ending"])
+        return hour_ending_start_utc(ddate, hour, spec.interval_minutes, repeated_hour=dst)
+    hour, interval = _to_int(rec["delivery_hour"]), _to_int(rec["delivery_interval"])
     return interval_start_utc(ddate, hour, interval, spec.interval_minutes, repeated_hour=dst)
 
 
