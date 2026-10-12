@@ -44,3 +44,17 @@ def test_json_round_trip_with_datetimes(lake: Lake) -> None:
 
 def test_listing_a_missing_prefix_is_empty(lake: Lake) -> None:
     assert lake.list_keys("curated/nothing") == []
+
+
+def test_read_json_retries_a_torn_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    lake = Lake(LakeConfig(root=str(tmp_path)))
+    lake.write_json("manifests/p/latest.json", {"a": 1})
+    real = lake.read_bytes
+    torn = iter([b'{"a": \x9d', None])
+
+    def flaky(key: str) -> bytes:
+        bad = next(torn)
+        return bad if bad is not None else real(key)
+
+    monkeypatch.setattr(lake, "read_bytes", flaky)
+    assert lake.read_json("manifests/p/latest.json") == {"a": 1}
