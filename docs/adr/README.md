@@ -13,3 +13,4 @@ Template: `0000-template.md`.
 | 0006 | RT MCPC gaps are filled from ERCOT's weekly historical workbook | accepted |
 | 0007 | The lake is its own repository: public code, private deployment | accepted |
 | 0008 | Products are configuration | accepted |
+| 0009 | A family of point-in-time lakes, and a forecaster that reads them | accepted |
